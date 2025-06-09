@@ -1,11 +1,10 @@
 
-import React, { useState, useEffect } from 'react'; // Added useState, useEffect
+import React from 'react'; 
 import { Santri, SantriStatus, KelasRecord, BlokRecord } from '../types'; 
 import PencilIcon from './icons/PencilIcon';
 import TrashIcon from './icons/TrashIcon';
 import UserIcon from './icons/UserIcon';
 import DocumentArrowDownIcon from './icons/DocumentArrowDownIcon';
-import { storage as appwriteStorage, APPWRITE_BUCKET_ID_SANTRI_PHOTOS } from '../services/appwriteClient'; // Import Appwrite storage
 
 interface SantriListItemProps {
   santri: Santri;
@@ -17,73 +16,50 @@ interface SantriListItemProps {
 }
 
 const SantriListItem: React.FC<SantriListItemProps> = ({ santri, onEdit, onDelete, onExportPdf, kelasRecords, blokRecords }) => {
-  const [fotoUrl, setFotoUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (santri.pasFotoFileId) {
-      try {
-        const url = appwriteStorage.getFilePreview(APPWRITE_BUCKET_ID_SANTRI_PHOTOS, santri.pasFotoFileId);
-        setFotoUrl(url);
-      } catch (error) {
-        console.error("Error generating file preview URL for santri:", santri.namalengkap, error);
-        setFotoUrl(null);
-      }
-    } else {
-      setFotoUrl(null);
-    }
-  }, [santri.pasFotoFileId, santri.namalengkap]);
-
-  const fotoDisplay = fotoUrl ? ( 
-    <img src={fotoUrl} alt={santri.namalengkap} className="w-24 h-24 object-cover rounded-full shadow-md" />
+  
+  const fotoDisplay = santri.pasfotourl ? ( 
+    <img src={santri.pasfotourl} alt={santri.namalengkap} className="w-24 h-24 object-cover rounded-full shadow-md" />
   ) : (
     <div className="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center shadow-md">
       <UserIcon className="w-16 h-16 text-slate-400" />
     </div>
   );
   
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return 'N/A';
+  const formatDate = (dateString: string | undefined): string => {
+    if (!dateString) return "N/A";
     try {
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-            const [year, month, day] = dateString.split('-');
-            if (parseInt(month, 10) >= 1 && parseInt(month, 10) <= 12 && parseInt(day, 10) >= 1 && parseInt(day, 10) <= 31) {
-                 return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString('id-ID', {
-                    day: '2-digit', month: 'long', year: 'numeric'
-                });
-            }
-        }
-        return new Date(dateString).toLocaleDateString('id-ID', {
-            day: '2-digit', month: 'long', year: 'numeric'
-        });
+      const date = new Date(dateString);
+      return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     } catch (e) {
-        return dateString; 
+      return dateString; // return original if invalid
     }
   };
 
-  const getStatusBadge = (status: SantriStatus) => {
-    const statusString = status as string; 
-    switch (statusString) {
+  const getStatusBadge = (status: SantriStatus): JSX.Element => {
+    let badgeClass = "px-2.5 py-1 text-xs font-semibold rounded-full shadow-sm ";
+    switch (status) {
       case SantriStatus.AKTIF:
-        return <span className="px-2.5 py-1 text-xs font-semibold text-success-content bg-success rounded-full shadow-sm">Aktif</span>;
-      case 'Pulang': 
-        return <span className="px-2.5 py-1 text-xs font-semibold text-warning-content bg-warning rounded-full shadow-sm">Pulang</span>;
+        badgeClass += "bg-green-100 text-green-700";
+        break;
       case SantriStatus.ALUMNI:
-        return <span className="px-2.5 py-1 text-xs font-semibold text-info-content bg-info rounded-full shadow-sm">Alumni</span>;
+        badgeClass += "bg-blue-100 text-blue-700";
+        break;
       default:
-        return <span className="px-2.5 py-1 text-xs font-semibold text-neutral-content bg-neutral-focus rounded-full shadow-sm">{statusString}</span>;
+        badgeClass += "bg-slate-100 text-slate-700";
     }
+    return <span className={badgeClass}>{status}</span>;
   };
-  
-  const displayAlamat = () => {
+
+  const displayAlamat = (): string => {
     const parts = [
-      santri.dusun,
-      santri.desakelurahan, 
+      santri.alamatlengkap,
+      santri.desakelurahan,
       santri.kecamatan,
-      santri.kotakabupaten, 
-      santri.provinsi
-    ].filter(Boolean).join(', ');
-    return parts || santri.alamatlengkap || 'Tidak ada data alamat.'; 
+      santri.kotakabupaten,
+    ].filter(Boolean); // Filter out undefined or empty strings
+    return parts.length > 0 ? parts.join(', ') : 'Alamat tidak lengkap';
   };
+
 
   const namaKelas = kelasRecords.find(k => k.id === santri.kelasid)?.namaKelas || 'N/A'; 
   const namaBlok = blokRecords.find(b => b.id === santri.blokid)?.namaBlok || 'N/A';   

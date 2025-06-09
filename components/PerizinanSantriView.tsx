@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Santri, LeavePermitRecord, LeaveType, LeavePermitStatus, UserRole, daftarLeaveType, daftarLeavePermitStatus, userRoleDisplayNames, SantriStatus, KelasRecord, AppwriteDocument } from '../types'; // Added KelasRecord
+import { Santri, LeavePermitRecord, LeaveType, LeavePermitStatus, UserRole, daftarLeaveType, daftarLeavePermitStatus, userRoleDisplayNames, SantriStatus, KelasRecord, SupabaseDefaultFields } from '../types'; 
 import UserIcon from './icons/UserIcon';
 import SearchIcon from './icons/SearchIcon';
 import InformationCircleIcon from './icons/InformationCircleIcon';
@@ -8,7 +8,7 @@ import PlusIcon from './icons/PlusIcon';
 import CheckCircleIcon from './icons/CheckCircleIcon';
 import ArrowPathIcon from './icons/ArrowPathIcon'; 
 
-type LeavePermitPayload = Omit<LeavePermitRecord, 'id' | keyof AppwriteDocument | 'recordedAt' | 'durationMinutes' | 'actualReturnDate' | 'actualReturnTime'>;
+type LeavePermitPayload = Omit<LeavePermitRecord, keyof SupabaseDefaultFields | 'recordedAt' | 'durationMinutes' | 'actualReturnDate' | 'actualReturnTime'>;
 
 
 interface PerizinanSantriViewProps {
@@ -119,9 +119,8 @@ const PerizinanSantriView: React.FC<PerizinanSantriViewProps> = ({
   // Effect to manage expectedReturnDate and time fields based on leaveType
   useEffect(() => {
     if (leaveType === LeaveType.IZIN_KELUAR_SEMENTARA) {
-      setExpectedReturnDate(leaveDate); // Auto-set for short term leaves
+      setExpectedReturnDate(leaveDate); 
     } else {
-      // Clear time fields if not IZIN_KELUAR_SEMENTARA
       setLeaveTime('');
       setExpectedReturnTime('');
     }
@@ -137,16 +136,16 @@ const PerizinanSantriView: React.FC<PerizinanSantriViewProps> = ({
 
     let finalExpectedReturnDate = expectedReturnDate;
     if (leaveType === LeaveType.IZIN_KELUAR_SEMENTARA) {
-        finalExpectedReturnDate = leaveDate; // Ensure it's same as leaveDate
+        finalExpectedReturnDate = leaveDate; 
         if (!leaveTime || !expectedReturnTime) {
             alert("Waktu keluar dan estimasi waktu kembali harus diisi untuk izin keluar sementara.");
             return;
         }
-         if (leaveTime >= expectedReturnTime) { // Assuming on the same day
+         if (leaveTime >= expectedReturnTime) { 
             alert("Estimasi waktu kembali harus setelah waktu keluar pada hari yang sama.");
             return;
         }
-    } else { // For other leave types
+    } else { 
         if (new Date(finalExpectedReturnDate) < new Date(leaveDate)) {
           alert("Tanggal estimasi kembali tidak boleh sebelum tanggal izin.");
           return;
@@ -177,7 +176,7 @@ const PerizinanSantriView: React.FC<PerizinanSantriViewProps> = ({
     setTimeout(() => {
       setSelectedSantriId('');
       setSantriSearchTerm('');
-      setLeaveType(LeaveType.PULANG_KE_RUMAH); // Reset to default
+      setLeaveType(LeaveType.PULANG_KE_RUMAH); 
       setReason('');
       setLeaveDate(new Date().toISOString().split('T')[0]);
       setLeaveTime('');
@@ -299,8 +298,8 @@ const PerizinanSantriView: React.FC<PerizinanSantriViewProps> = ({
             break;
         case 'durationMinutes': valA = a.durationMinutes || 0; valB = b.durationMinutes || 0; break;
         default: 
-            valA = a[rekapSortKey as keyof LeavePermitRecord]?.toString() || '';
-            valB = b[rekapSortKey as keyof LeavePermitRecord]?.toString() || '';
+            valA = (a[rekapSortKey as keyof LeavePermitRecord] as any)?.toString() || '';
+            valB = (b[rekapSortKey as keyof LeavePermitRecord] as any)?.toString() || '';
             break;
       }
       
@@ -590,7 +589,7 @@ const PerizinanSantriView: React.FC<PerizinanSantriViewProps> = ({
                                     <td className="px-3 py-3 text-xs sm:text-sm text-base-content">{formatDateWithTime(permit.actualReturnDate, permit.actualReturnTime)}</td>
                                     <td className="px-3 py-3 text-xs sm:text-sm text-center text-base-content">{formatDurationFromMinutes(permit.durationMinutes)}</td>
                                     <td className="px-3 py-3 text-xs sm:text-sm text-center">
-                                        <span className={`px-2 py-0.5 rounded-full font-semibold ${permit.status === LeavePermitStatus.IZIN ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                                        <span className={`px-2 py-0.5 rounded-full font-semibold ${permit.status === LeavePermitStatus.IZIN ? 'bg-yellow-100 text-yellow-700' : permit.status === LeavePermitStatus.KEMBALI ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                             {permit.status}
                                         </span>
                                     </td>

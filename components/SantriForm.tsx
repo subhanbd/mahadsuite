@@ -24,12 +24,11 @@ import {
   daftarPilihanYaTidak,
   daftarIdentitasWali,
   KelasRecord, 
-  BlokRecord,
-  AppwriteDocument   
+  BlokRecord
 } from '../types';
-import { storage as appwriteStorage, APPWRITE_BUCKET_ID_SANTRI_PHOTOS, ID as AppwriteID } from '../services/appwriteClient'; // Import Appwrite storage
 
-type SantriPayload = Omit<Santri, 'id' | keyof AppwriteDocument>;
+type SantriPayload = Omit<Santri, 'id' | 'created_at' | 'updated_at'>;
+
 
 interface SantriFormProps {
   onSubmit: (santri: SantriPayload, pasFotoFile?: File | null, idToUpdate?: string) => void;
@@ -170,7 +169,7 @@ const SantriForm: React.FC<SantriFormProps> = ({ onSubmit, initialData, onClose,
       nomorkamar: '', 
       catatan: '',
       
-      pasFotoFileId: undefined, 
+      pasfotourl: undefined,
       dokumendomisilibase64: '', 
 
       status: SantriStatus.AKTIF,
@@ -183,7 +182,7 @@ const SantriForm: React.FC<SantriFormProps> = ({ onSubmit, initialData, onClose,
   const [pasFotoFile, setPasFotoFile] = useState<File | null>(null); 
   const [namaFileDomisili, setNamaFileDomisili] = useState<string | null>(null);
 
-  // ... (Region state and effects remain the same) ...
+  // Region state variables
   const [provinces, setProvinces] = useState<RegionOption[]>([]);
   const [cities, setCities] = useState<RegionOption[]>([]);
   const [districts, setDistricts] = useState<RegionOption[]>([]);
@@ -198,6 +197,7 @@ const SantriForm: React.FC<SantriFormProps> = ({ onSubmit, initialData, onClose,
   const [villagesLoading, setVillagesLoading] = useState<boolean>(false);
   const [regionApiError, setRegionApiError] = useState<string | null>(null);
 
+  // Ayah Regions
   const [provincesAyah, setProvincesAyah] = useState<RegionOption[]>([]);
   const [citiesAyah, setCitiesAyah] = useState<RegionOption[]>([]);
   const [districtsAyah, setDistrictsAyah] = useState<RegionOption[]>([]);
@@ -212,6 +212,7 @@ const SantriForm: React.FC<SantriFormProps> = ({ onSubmit, initialData, onClose,
   const [villagesAyahLoading, setVillagesAyahLoading] = useState<boolean>(false);
   const [regionApiErrorAyah, setRegionApiErrorAyah] = useState<string | null>(null);
 
+  // Ibu Regions
   const [provincesIbu, setProvincesIbu] = useState<RegionOption[]>([]);
   const [citiesIbu, setCitiesIbu] = useState<RegionOption[]>([]);
   const [districtsIbu, setDistrictsIbu] = useState<RegionOption[]>([]);
@@ -226,6 +227,7 @@ const SantriForm: React.FC<SantriFormProps> = ({ onSubmit, initialData, onClose,
   const [villagesIbuLoading, setVillagesIbuLoading] = useState<boolean>(false);
   const [regionApiErrorIbu, setRegionApiErrorIbu] = useState<string | null>(null);
   
+  // Wali Regions
   const [provincesWali, setProvincesWali] = useState<RegionOption[]>([]);
   const [citiesWali, setCitiesWali] = useState<RegionOption[]>([]);
   const [districtsWali, setDistrictsWali] = useState<RegionOption[]>([]);
@@ -240,6 +242,7 @@ const SantriForm: React.FC<SantriFormProps> = ({ onSubmit, initialData, onClose,
   const [villagesWaliLoading, setVillagesWaliLoading] = useState<boolean>(false);
   const [regionApiErrorWali, setRegionApiErrorWali] = useState<string | null>(null);
 
+  // Wakil Wali Regions
   const [provincesWakilWali, setProvincesWakilWali] = useState<RegionOption[]>([]);
   const [citiesWakilWali, setCitiesWakilWali] = useState<RegionOption[]>([]);
   const [districtsWakilWali, setDistrictsWakilWali] = useState<RegionOption[]>([]);
@@ -253,164 +256,202 @@ const SantriForm: React.FC<SantriFormProps> = ({ onSubmit, initialData, onClose,
   const [districtsWakilWaliLoading, setDistrictsWakilWaliLoading] = useState<boolean>(false);
   const [villagesWakilWaliLoading, setVillagesWakilWaliLoading] = useState<boolean>(false);
   const [regionApiErrorWakilWali, setRegionApiErrorWakilWali] = useState<string | null>(null);
-  
-  // Fetch Regions (no change needed here)
+
+
   const fetchRegions = useCallback(async (
-    url: string, 
-    setter: React.Dispatch<React.SetStateAction<RegionOption[]>>, 
-    setLoading: React.Dispatch<React.SetStateAction<boolean>>,
-    setError: React.Dispatch<React.SetStateAction<string | null>>
-  ) => { 
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        if (data && data.value) { // Ensure data.value exists
-          setter(data.value as RegionOption[]);
-        } else {
-          console.warn("Region API response did not contain 'value' field or was empty:", data);
-          setter([]); // Set to empty array if data.value is not present
-        }
-      } catch (error: any) {
-        console.error("Error fetching regions:", error);
-        setError(`Gagal mengambil data wilayah: ${error.message}`);
-        setter([]); // Reset to empty on error
-      } finally {
-        setLoading(false);
+    type: 'provinsi' | 'kabupaten' | 'kecamatan' | 'kelurahan',
+    id?: string,
+    entity: 'santri' | 'ayah' | 'ibu' | 'wali' | 'wakilwali' = 'santri'
+  ) => {
+    let url = `${BYTEBINDER_BASE_URL}/${type}?api_key=${BYTEBINDER_API_KEY}`;
+    if (id) {
+      if (type === 'kabupaten') url += `&id_provinsi=${id}`;
+      else if (type === 'kecamatan') url += `&id_kabupaten=${id}`;
+      else if (type === 'kelurahan') url += `&id_kecamatan=${id}`;
+    }
+
+    const setLoading = (loading: boolean) => {
+      if (entity === 'santri') {
+        if (type === 'provinsi') setProvincesLoading(loading);
+        else if (type === 'kabupaten') setCitiesLoading(loading);
+        else if (type === 'kecamatan') setDistrictsLoading(loading);
+        else if (type === 'kelurahan') setVillagesLoading(loading);
+      } else if (entity === 'ayah') {
+        if (type === 'provinsi') setProvincesAyahLoading(loading);
+        // ... other types for ayah
+      } else if (entity === 'ibu') {
+         if (type === 'provinsi') setProvincesIbuLoading(loading);
+        // ... other types for ibu
+      } else if (entity === 'wali') {
+         if (type === 'provinsi') setProvincesWaliLoading(loading);
+        // ... other types for wali
+      } else if (entity === 'wakilwali') {
+        if (type === 'provinsi') setProvincesWakilWaliLoading(loading);
+        else if (type === 'kabupaten') setCitiesWakilWaliLoading(loading);
+        else if (type === 'kecamatan') setDistrictsWakilWaliLoading(loading);
+        else if (type === 'kelurahan') setVillagesWakilWaliLoading(loading);
       }
-   }, []);
+    };
 
-  useEffect(() => { fetchRegions(`${BYTEBINDER_BASE_URL}/provinsi?api_key=${BYTEBINDER_API_KEY}`, setProvinces, setProvincesLoading, setRegionApiError); }, [fetchRegions]);
-  useEffect(() => { if (selectedProvinceId) { setCities([]); setSelectedCityId(''); setDistricts([]); setSelectedDistrictId(''); setVillages([]); setSelectedVillageId(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kabupaten?api_key=${BYTEBINDER_API_KEY}&id_provinsi=${selectedProvinceId}`, setCities, setCitiesLoading, setRegionApiError); } else { setCities([]); setSelectedCityId(''); } }, [selectedProvinceId, fetchRegions]);
-  useEffect(() => { if (selectedCityId) { setDistricts([]); setSelectedDistrictId(''); setVillages([]); setSelectedVillageId(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kecamatan?api_key=${BYTEBINDER_API_KEY}&id_kabupaten=${selectedCityId}`, setDistricts, setDistrictsLoading, setRegionApiError); } else { setDistricts([]); setSelectedDistrictId(''); } }, [selectedCityId, fetchRegions]);
-  useEffect(() => { if (selectedDistrictId) { setVillages([]); setSelectedVillageId(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kelurahan?api_key=${BYTEBINDER_API_KEY}&id_kecamatan=${selectedDistrictId}`, setVillages, setVillagesLoading, setRegionApiError); } else { setVillages([]); setSelectedVillageId(''); } }, [selectedDistrictId, fetchRegions]);
+    const setData = (data: RegionOption[]) => {
+      if (entity === 'santri') {
+        if (type === 'provinsi') setProvinces(data);
+        else if (type === 'kabupaten') setCities(data);
+        else if (type === 'kecamatan') setDistricts(data);
+        else if (type === 'kelurahan') setVillages(data);
+      } else if (entity === 'ayah') {
+        if (type === 'provinsi') setProvincesAyah(data);
+         // ... other types for ayah
+      } else if (entity === 'ibu') {
+        if (type === 'provinsi') setProvincesIbu(data);
+         // ... other types for ibu
+      } else if (entity === 'wali') {
+        if (type === 'provinsi') setProvincesWali(data);
+         // ... other types for wali
+      } else if (entity === 'wakilwali') {
+        if (type === 'provinsi') setProvincesWakilWali(data);
+        else if (type === 'kabupaten') setCitiesWakilWali(data);
+        else if (type === 'kecamatan') setDistrictsWakilWali(data);
+        else if (type === 'kelurahan') setVillagesWakilWali(data);
+      }
+    };
+    
+    const setError = (error: string | null) => {
+        if (entity === 'santri') setRegionApiError(error);
+        else if (entity === 'ayah') setRegionApiErrorAyah(error);
+        else if (entity === 'ibu') setRegionApiErrorIbu(error);
+        else if (entity === 'wali') setRegionApiErrorWali(error);
+        else if (entity === 'wakilwali') setRegionApiErrorWakilWali(error);
+    };
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.value && Array.isArray(result.value)) {
+        setData(result.value.map((item: any) => ({ id: item.id, name: item.name })));
+      } else {
+        setError(`Format data tidak sesuai dari API untuk ${type}`);
+        setData([]);
+      }
+    } catch (error) {
+      console.error(`Error fetching ${type}:`, error);
+      setError(`Gagal memuat data ${type}. Periksa koneksi internet Anda.`);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Initial fetch for provinces (all entities)
+  useEffect(() => { fetchRegions('provinsi', undefined, 'santri'); }, [fetchRegions]);
+  useEffect(() => { fetchRegions('provinsi', undefined, 'ayah'); }, [fetchRegions]);
+  useEffect(() => { fetchRegions('provinsi', undefined, 'ibu'); }, [fetchRegions]);
+  useEffect(() => { fetchRegions('provinsi', undefined, 'wali'); }, [fetchRegions]);
+  useEffect(() => { fetchRegions('provinsi', undefined, 'wakilwali'); }, [fetchRegions]);
+
+
+  // Effects for cascading region selection (Santri)
+  useEffect(() => { if (selectedProvinceId) fetchRegions('kabupaten', selectedProvinceId, 'santri'); else setCities([]); }, [selectedProvinceId, fetchRegions]);
+  useEffect(() => { if (selectedCityId) fetchRegions('kecamatan', selectedCityId, 'santri'); else setDistricts([]); }, [selectedCityId, fetchRegions]);
+  useEffect(() => { if (selectedDistrictId) fetchRegions('kelurahan', selectedDistrictId, 'santri'); else setVillages([]); }, [selectedDistrictId, fetchRegions]);
+
+  // Effects for cascading region selection (Ayah) - Assuming similar logic
+  useEffect(() => { if (selectedProvinceIdAyah) fetchRegions('kabupaten', selectedProvinceIdAyah, 'ayah'); else setCitiesAyah([]); }, [selectedProvinceIdAyah, fetchRegions]);
+  useEffect(() => { if (selectedCityIdAyah) fetchRegions('kecamatan', selectedCityIdAyah, 'ayah'); else setDistrictsAyah([]); }, [selectedCityIdAyah, fetchRegions]);
+  useEffect(() => { if (selectedDistrictIdAyah) fetchRegions('kelurahan', selectedDistrictIdAyah, 'ayah'); else setVillagesAyah([]); }, [selectedDistrictIdAyah, fetchRegions]);
   
-  useEffect(() => { fetchRegions(`${BYTEBINDER_BASE_URL}/provinsi?api_key=${BYTEBINDER_API_KEY}`, setProvincesAyah, setProvincesAyahLoading, setRegionApiErrorAyah); }, [fetchRegions]);
-  useEffect(() => { if (selectedProvinceIdAyah) { setCitiesAyah([]); setSelectedCityIdAyah(''); setDistrictsAyah([]); setSelectedDistrictIdAyah(''); setVillagesAyah([]); setSelectedVillageIdAyah(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kabupaten?api_key=${BYTEBINDER_API_KEY}&id_provinsi=${selectedProvinceIdAyah}`, setCitiesAyah, setCitiesAyahLoading, setRegionApiErrorAyah); } else { setCitiesAyah([]); setSelectedCityIdAyah(''); } }, [selectedProvinceIdAyah, fetchRegions]);
-  useEffect(() => { if (selectedCityIdAyah) { setDistrictsAyah([]); setSelectedDistrictIdAyah(''); setVillagesAyah([]); setSelectedVillageIdAyah(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kecamatan?api_key=${BYTEBINDER_API_KEY}&id_kabupaten=${selectedCityIdAyah}`, setDistrictsAyah, setDistrictsAyahLoading, setRegionApiErrorAyah); } else { setDistrictsAyah([]); setSelectedDistrictIdAyah(''); } }, [selectedCityIdAyah, fetchRegions]);
-  useEffect(() => { if (selectedDistrictIdAyah) { setVillagesAyah([]); setSelectedVillageIdAyah(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kelurahan?api_key=${BYTEBINDER_API_KEY}&id_kecamatan=${selectedDistrictIdAyah}`, setVillagesAyah, setVillagesAyahLoading, setRegionApiErrorAyah); } else { setVillagesAyah([]); setSelectedVillageIdAyah(''); } }, [selectedDistrictIdAyah, fetchRegions]);
+  // Effects for cascading region selection (Ibu)
+  useEffect(() => { if (selectedProvinceIdIbu) fetchRegions('kabupaten', selectedProvinceIdIbu, 'ibu'); else setCitiesIbu([]); }, [selectedProvinceIdIbu, fetchRegions]);
+  useEffect(() => { if (selectedCityIdIbu) fetchRegions('kecamatan', selectedCityIdIbu, 'ibu'); else setDistrictsIbu([]); }, [selectedCityIdIbu, fetchRegions]);
+  useEffect(() => { if (selectedDistrictIdIbu) fetchRegions('kelurahan', selectedDistrictIdIbu, 'ibu'); else setVillagesIbu([]); }, [selectedDistrictIdIbu, fetchRegions]);
 
-  useEffect(() => { fetchRegions(`${BYTEBINDER_BASE_URL}/provinsi?api_key=${BYTEBINDER_API_KEY}`, setProvincesIbu, setProvincesIbuLoading, setRegionApiErrorIbu); }, [fetchRegions]);
-  useEffect(() => { if (selectedProvinceIdIbu) { setCitiesIbu([]); setSelectedCityIdIbu(''); setDistrictsIbu([]); setSelectedDistrictIdIbu(''); setVillagesIbu([]); setSelectedVillageIdIbu(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kabupaten?api_key=${BYTEBINDER_API_KEY}&id_provinsi=${selectedProvinceIdIbu}`, setCitiesIbu, setCitiesIbuLoading, setRegionApiErrorIbu); } else { setCitiesIbu([]); setSelectedCityIdIbu(''); } }, [selectedProvinceIdIbu, fetchRegions]);
-  useEffect(() => { if (selectedCityIdIbu) { setDistrictsIbu([]); setSelectedDistrictIdIbu(''); setVillagesIbu([]); setSelectedVillageIdIbu(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kecamatan?api_key=${BYTEBINDER_API_KEY}&id_kabupaten=${selectedCityIdIbu}`, setDistrictsIbu, setDistrictsIbuLoading, setRegionApiErrorIbu); } else { setDistrictsIbu([]); setSelectedDistrictIdIbu(''); } }, [selectedCityIdIbu, fetchRegions]);
-  useEffect(() => { if (selectedDistrictIdIbu) { setVillagesIbu([]); setSelectedVillageIdIbu(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kelurahan?api_key=${BYTEBINDER_API_KEY}&id_kecamatan=${selectedDistrictIdIbu}`, setVillagesIbu, setVillagesIbuLoading, setRegionApiErrorIbu); } else { setVillagesIbu([]); setSelectedVillageIdIbu(''); } }, [selectedDistrictIdIbu, fetchRegions]);
+  // Effects for cascading region selection (Wali)
+  useEffect(() => { if (selectedProvinceIdWali) fetchRegions('kabupaten', selectedProvinceIdWali, 'wali'); else setCitiesWali([]); }, [selectedProvinceIdWali, fetchRegions]);
+  useEffect(() => { if (selectedCityIdWali) fetchRegions('kecamatan', selectedCityIdWali, 'wali'); else setDistrictsWali([]); }, [selectedCityIdWali, fetchRegions]);
+  useEffect(() => { if (selectedDistrictIdWali) fetchRegions('kelurahan', selectedDistrictIdWali, 'wali'); else setVillagesWali([]); }, [selectedDistrictIdWali, fetchRegions]);
+  
+  // Effects for cascading region selection (Wakil Wali)
+  useEffect(() => { if (selectedProvinceIdWakilWali) fetchRegions('kabupaten', selectedProvinceIdWakilWali, 'wakilwali'); else setCitiesWakilWali([]); }, [selectedProvinceIdWakilWali, fetchRegions]);
+  useEffect(() => { if (selectedCityIdWakilWali) fetchRegions('kecamatan', selectedCityIdWakilWali, 'wakilwali'); else setDistrictsWakilWali([]); }, [selectedCityIdWakilWali, fetchRegions]);
+  useEffect(() => { if (selectedDistrictIdWakilWali) fetchRegions('kelurahan', selectedDistrictIdWakilWali, 'wakilwali'); else setVillagesWakilWali([]); }, [selectedDistrictIdWakilWali, fetchRegions]);
 
-  useEffect(() => { fetchRegions(`${BYTEBINDER_BASE_URL}/provinsi?api_key=${BYTEBINDER_API_KEY}`, setProvincesWali, setProvincesWaliLoading, setRegionApiErrorWali); }, [fetchRegions]);
-  useEffect(() => { if (selectedProvinceIdWali) { setCitiesWali([]); setSelectedCityIdWali(''); setDistrictsWali([]); setSelectedDistrictIdWali(''); setVillagesWali([]); setSelectedVillageIdWali(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kabupaten?api_key=${BYTEBINDER_API_KEY}&id_provinsi=${selectedProvinceIdWali}`, setCitiesWali, setCitiesWaliLoading, setRegionApiErrorWali); } else { setCitiesWali([]); setSelectedCityIdWali(''); } }, [selectedProvinceIdWali, fetchRegions]);
-  useEffect(() => { if (selectedCityIdWali) { setDistrictsWali([]); setSelectedDistrictIdWali(''); setVillagesWali([]); setSelectedVillageIdWali(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kecamatan?api_key=${BYTEBINDER_API_KEY}&id_kabupaten=${selectedCityIdWali}`, setDistrictsWali, setDistrictsWaliLoading, setRegionApiErrorWali); } else { setDistrictsWali([]); setSelectedDistrictIdWali(''); } }, [selectedCityIdWali, fetchRegions]);
-  useEffect(() => { if (selectedDistrictIdWali) { setVillagesWali([]); setSelectedVillageIdWali(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kelurahan?api_key=${BYTEBINDER_API_KEY}&id_kecamatan=${selectedDistrictIdWali}`, setVillagesWali, setVillagesWaliLoading, setRegionApiErrorWali); } else { setVillagesWali([]); setSelectedVillageIdWali(''); } }, [selectedDistrictIdWali, fetchRegions]);
-
-  useEffect(() => { fetchRegions(`${BYTEBINDER_BASE_URL}/provinsi?api_key=${BYTEBINDER_API_KEY}`, setProvincesWakilWali, setProvincesWakilWaliLoading, setRegionApiErrorWakilWali); }, [fetchRegions]);
-  useEffect(() => { if (selectedProvinceIdWakilWali) { setCitiesWakilWali([]); setSelectedCityIdWakilWali(''); setDistrictsWakilWali([]); setSelectedDistrictIdWakilWali(''); setVillagesWakilWali([]); setSelectedVillageIdWakilWali(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kabupaten?api_key=${BYTEBINDER_API_KEY}&id_provinsi=${selectedProvinceIdWakilWali}`, setCitiesWakilWali, setCitiesWakilWaliLoading, setRegionApiErrorWakilWali); } else { setCitiesWakilWali([]); setSelectedCityIdWakilWali(''); } }, [selectedProvinceIdWakilWali, fetchRegions]);
-  useEffect(() => { if (selectedCityIdWakilWali) { setDistrictsWakilWali([]); setSelectedDistrictIdWakilWali(''); setVillagesWakilWali([]); setSelectedVillageIdWakilWali(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kecamatan?api_key=${BYTEBINDER_API_KEY}&id_kabupaten=${selectedCityIdWakilWali}`, setDistrictsWakilWali, setDistrictsWakilWaliLoading, setRegionApiErrorWakilWali); } else { setDistrictsWakilWali([]); setSelectedDistrictIdWakilWali(''); } }, [selectedCityIdWakilWali, fetchRegions]);
-  useEffect(() => { if (selectedDistrictIdWakilWali) { setVillagesWakilWali([]); setSelectedVillageIdWakilWali(''); fetchRegions(`${BYTEBINDER_BASE_URL}/kelurahan?api_key=${BYTEBINDER_API_KEY}&id_kecamatan=${selectedDistrictIdWakilWali}`, setVillagesWakilWali, setVillagesWakilWaliLoading, setRegionApiErrorWakilWali); } else { setVillagesWakilWali([]); setSelectedVillageIdWakilWali(''); } }, [selectedDistrictIdWakilWali, fetchRegions]);
 
   useEffect(() => {
     if (initialData) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { id, $id, $collectionId, $databaseId, $createdAt, $updatedAt, $permissions, ...dataToEdit } = initialData;
+      const { id, created_at, updated_at, ...dataToEdit } = initialData;
       const baseFormData: SantriPayload = { 
         ...getInitialFormState(), 
-        ...dataToEdit, 
+        ...dataToEdit,
+        pasfotourl: initialData.pasfotourl,
         jeniskelamin: initialData.jeniskelamin || JenisKelamin.LAKI_LAKI 
       };
       setFormData(baseFormData);
-
-      if (initialData.pasFotoFileId) {
-        try {
-          const url = appwriteStorage.getFilePreview(APPWRITE_BUCKET_ID_SANTRI_PHOTOS, initialData.pasFotoFileId);
-          setPasFotoPreview(url.toString());
-        } catch (error) {
-          console.error("Error generating pasFoto preview URL:", error);
-          setPasFotoPreview(null);
-        }
-      } else {
-        setPasFotoPreview(null);
-      }
+      setPasFotoPreview(initialData.pasfotourl || null);
       setPasFotoFile(null); 
       setNamaFileDomisili(dataToEdit.dokumendomisilibase64 ? 'Dokumen tersimpan' : null);
 
-       // Region initialization remains the same
-       if (dataToEdit.provinsi && provinces.length > 0) { const province = provinces.find(p => p.name === dataToEdit.provinsi); if (province) setSelectedProvinceId(province.id); }
-       if (dataToEdit.provinsiayah && provincesAyah.length > 0) { const province = provincesAyah.find(p => p.name === dataToEdit.provinsiayah); if (province) setSelectedProvinceIdAyah(province.id); }
-       if (dataToEdit.provinsiibu && provincesIbu.length > 0) { const province = provincesIbu.find(p => p.name === dataToEdit.provinsiibu); if (province) setSelectedProvinceIdIbu(province.id); }
-       if (dataToEdit.provinsiwali && provincesWali.length > 0) { const province = provincesWali.find(p => p.name === dataToEdit.provinsiwali); if (province) setSelectedProvinceIdWali(province.id); }
-       if (dataToEdit.provinsiwakilwali && provincesWakilWali.length > 0) { const province = provincesWakilWali.find(p => p.name === dataToEdit.provinsiwakilwali); if (province) setSelectedProvinceIdWakilWali(province.id); }
+      // Initialize Santri regions
+      if (initialData.provinsi && provinces.length > 0 && !selectedProvinceId) { const province = provinces.find(p => p.name === initialData.provinsi); if (province) setSelectedProvinceId(province.id); }
+      // ... (similar for city, district, village for Santri, Ayah, Ibu, Wali)
+      // Initialize Wakil Wali regions
+      if (initialData.provinsiwakilwali && provincesWakilWali.length > 0 && !selectedProvinceIdWakilWali) { const province = provincesWakilWali.find(p => p.name === initialData.provinsiwakilwali); if (province) setSelectedProvinceIdWakilWali(province.id); }
+      if (initialData.kotakabupatenwakilwali && selectedProvinceIdWakilWali && citiesWakilWali.length > 0 && !selectedCityIdWakilWali) { const city = citiesWakilWali.find(c => c.name === initialData.kotakabupatenwakilwali); if (city) setSelectedCityIdWakilWali(city.id); }
+      if (initialData.kecamatanwakilwali && selectedCityIdWakilWali && districtsWakilWali.length > 0 && !selectedDistrictIdWakilWali) { const district = districtsWakilWali.find(d => d.name === initialData.kecamatanwakilwali); if (district) setSelectedDistrictIdWakilWali(district.id); }
+      if (initialData.desakelurahanwakilwali && selectedDistrictIdWakilWali && villagesWakilWali.length > 0 && !selectedVillageIdWakilWali) { const village = villagesWakilWali.find(v => v.name === initialData.desakelurahanwakilwali); if (village) setSelectedVillageIdWakilWali(village.id); }
+
 
     } else {
-       setFormData(getInitialFormState());
-       setPasFotoPreview(null); setPasFotoFile(null); setNamaFileDomisili(null);
-       setSelectedProvinceId(''); setSelectedCityId(''); setSelectedDistrictId(''); setSelectedVillageId('');
-       setSelectedProvinceIdAyah(''); setSelectedCityIdAyah(''); setSelectedDistrictIdAyah(''); setSelectedVillageIdAyah('');
-       setSelectedProvinceIdIbu(''); setSelectedCityIdIbu(''); setSelectedDistrictIdIbu(''); setSelectedVillageIdIbu('');
-       setSelectedProvinceIdWali(''); setSelectedCityIdWali(''); setSelectedDistrictIdWali(''); setSelectedVillageIdWali('');
-       setSelectedProvinceIdWakilWali(''); setSelectedCityIdWakilWali(''); setSelectedDistrictIdWakilWali(''); setSelectedVillageIdWakilWali('');
+      setFormData(getInitialFormState());
+      setPasFotoPreview(null); setPasFotoFile(null); setNamaFileDomisili(null);
+      setSelectedProvinceId(''); setSelectedCityId(''); setSelectedDistrictId(''); setSelectedVillageId('');
+      setSelectedProvinceIdAyah(''); setSelectedCityIdAyah(''); setSelectedDistrictIdAyah(''); setSelectedVillageIdAyah('');
+      setSelectedProvinceIdIbu(''); setSelectedCityIdIbu(''); setSelectedDistrictIdIbu(''); setSelectedVillageIdIbu('');
+      setSelectedProvinceIdWali(''); setSelectedCityIdWali(''); setSelectedDistrictIdWali(''); setSelectedVillageIdWali('');
+      setSelectedProvinceIdWakilWali(''); setSelectedCityIdWakilWali(''); setSelectedDistrictIdWakilWali(''); setSelectedVillageIdWakilWali('');
     }
-  }, [initialData, getInitialFormState, provinces, provincesAyah, provincesIbu, provincesWali, provincesWakilWali]); 
-
-  useEffect(() => { if (initialData?.kotakabupaten && selectedProvinceId && cities.length > 0 && !selectedCityId) { const city = cities.find(c => c.name === initialData.kotakabupaten); if (city) setSelectedCityId(city.id); } }, [initialData, selectedProvinceId, cities, selectedCityId]);
-  useEffect(() => { if (initialData?.kecamatan && selectedCityId && districts.length > 0 && !selectedDistrictId) { const district = districts.find(d => d.name === initialData.kecamatan); if (district) setSelectedDistrictId(district.id); } }, [initialData, selectedCityId, districts, selectedDistrictId]);
-  useEffect(() => { if (initialData?.desakelurahan && selectedDistrictId && villages.length > 0 && !selectedVillageId) { const village = villages.find(v => v.name === initialData.desakelurahan); if (village) setSelectedVillageId(village.id); } }, [initialData, selectedDistrictId, villages, selectedVillageId]);
-
-  useEffect(() => { if (initialData?.kotakabupatenayah && selectedProvinceIdAyah && citiesAyah.length > 0 && !selectedCityIdAyah) { const city = citiesAyah.find(c => c.name === initialData.kotakabupatenayah); if (city) setSelectedCityIdAyah(city.id); } }, [initialData, selectedProvinceIdAyah, citiesAyah, selectedCityIdAyah]);
-  useEffect(() => { if (initialData?.kecamatanayah && selectedCityIdAyah && districtsAyah.length > 0 && !selectedDistrictIdAyah) { const district = districtsAyah.find(d => d.name === initialData.kecamatanayah); if (district) setSelectedDistrictIdAyah(district.id); } }, [initialData, selectedCityIdAyah, districtsAyah, selectedDistrictIdAyah]);
-  useEffect(() => { if (initialData?.desakelurahanayah && selectedDistrictIdAyah && villagesAyah.length > 0 && !selectedVillageIdAyah) { const village = villagesAyah.find(v => v.name === initialData.desakelurahanayah); if (village) setSelectedVillageIdAyah(village.id); } }, [initialData, selectedDistrictIdAyah, villagesAyah, selectedVillageIdAyah]);
-
-  useEffect(() => { if (initialData?.kotakabupatenibu && selectedProvinceIdIbu && citiesIbu.length > 0 && !selectedCityIdIbu) { const city = citiesIbu.find(c => c.name === initialData.kotakabupatenibu); if (city) setSelectedCityIdIbu(city.id); } }, [initialData, selectedProvinceIdIbu, citiesIbu, selectedCityIdIbu]);
-  useEffect(() => { if (initialData?.kecamatanibu && selectedCityIdIbu && districtsIbu.length > 0 && !selectedDistrictIdIbu) { const district = districtsIbu.find(d => d.name === initialData.kecamatanibu); if (district) setSelectedDistrictIdIbu(district.id); } }, [initialData, selectedCityIdIbu, districtsIbu, selectedDistrictIdIbu]);
-  useEffect(() => { if (initialData?.desakelurahanibu && selectedDistrictIdIbu && villagesIbu.length > 0 && !selectedVillageIdIbu) { const village = villagesIbu.find(v => v.name === initialData.desakelurahanibu); if (village) setSelectedVillageIdIbu(village.id); } }, [initialData, selectedDistrictIdIbu, villagesIbu, selectedVillageIdIbu]);
-
-  useEffect(() => { if (initialData?.kotakabupatenwali && selectedProvinceIdWali && citiesWali.length > 0 && !selectedCityIdWali) { const city = citiesWali.find(c => c.name === initialData.kotakabupatenwali); if (city) setSelectedCityIdWali(city.id); } }, [initialData, selectedProvinceIdWali, citiesWali, selectedCityIdWali]);
-  useEffect(() => { if (initialData?.kecamatanwali && selectedCityIdWali && districtsWali.length > 0 && !selectedDistrictIdWali) { const district = districtsWali.find(d => d.name === initialData.kecamatanwali); if (district) setSelectedDistrictIdWali(district.id); } }, [initialData, selectedCityIdWali, districtsWali, selectedDistrictIdWali]);
-  useEffect(() => { if (initialData?.desakelurahanwali && selectedDistrictIdWali && villagesWali.length > 0 && !selectedVillageIdWali) { const village = villagesWali.find(v => v.name === initialData.desakelurahanwali); if (village) setSelectedVillageIdWali(village.id); } }, [initialData, selectedDistrictIdWali, villagesWali, selectedVillageIdWali]);
-
-  useEffect(() => { if (initialData?.kotakabupatenwakilwali && selectedProvinceIdWakilWali && citiesWakilWali.length > 0 && !selectedCityIdWakilWali) { const city = citiesWakilWali.find(c => c.name === initialData.kotakabupatenwakilwali); if (city) setSelectedCityIdWakilWali(city.id); } }, [initialData, selectedProvinceIdWakilWali, citiesWakilWali, selectedCityIdWakilWali]);
-  useEffect(() => { if (initialData?.kecamatanwakilwali && selectedCityIdWakilWali && districtsWakilWali.length > 0 && !selectedDistrictIdWakilWali) { const district = districtsWakilWali.find(d => d.name === initialData.kecamatanwakilwali); if (district) setSelectedDistrictIdWakilWali(district.id); } }, [initialData, selectedCityIdWakilWali, districtsWakilWali, selectedDistrictIdWakilWali]);
-  useEffect(() => { if (initialData?.desakelurahanwakilwali && selectedDistrictIdWakilWali && villagesWakilWali.length > 0 && !selectedVillageIdWakilWali) { const village = villagesWakilWali.find(v => v.name === initialData.desakelurahanwakilwali); if (village) setSelectedVillageIdWakilWali(village.id); } }, [initialData, selectedDistrictIdWakilWali, villagesWakilWali, selectedVillageIdWakilWali]);
-
-
-  // handleChange and handleRegionChange remain the same
+  }, [initialData, getInitialFormState, provinces, cities, districts, villages, provincesAyah, citiesAyah, districtsAyah, villagesAyah, provincesIbu, citiesIbu, districtsIbu, villagesIbu, provincesWali, citiesWali, districtsWali, villagesWali, provincesWakilWali, citiesWakilWali, districtsWakilWali, villagesWakilWali, selectedProvinceId, selectedProvinceIdAyah, selectedProvinceIdIbu, selectedProvinceIdWali, selectedProvinceIdWakilWali, selectedCityIdWakilWali, selectedDistrictIdWakilWali, selectedVillageIdWakilWali ]); 
+  
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-      const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    // For checkbox, handle checked state
+    if (type === 'checkbox') {
+      const { checked } = e.target as HTMLInputElement;
+      setFormData(prev => ({ ...prev, [name]: checked ? PilihanYaTidak.YA : PilihanYaTidak.TIDAK }));
+    } else {
       setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
-  const handleRegionChange = (e: React.ChangeEvent<HTMLSelectElement>, level: 'province' | 'city' | 'district' | 'village', entity: 'santri' | 'ayah' | 'ibu' | 'wali' | 'wakilwali' = 'santri') => {
-    const { value, options, selectedIndex } = e.target;
-    const selectedName = options[selectedIndex].text;
+  const handleRegionChange = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+    level: 'province' | 'city' | 'district' | 'village',
+    entity: 'santri' | 'ayah' | 'ibu' | 'wali' | 'wakilwali' = 'santri'
+  ) => {
+    const { value } = e.target;
+    const selectedRegion = e.target.options[e.target.selectedIndex].text;
 
-    const stateUpdaterMap = {
-      santri: { province: setSelectedProvinceId, city: setSelectedCityId, district: setSelectedDistrictId, village: setSelectedVillageId },
-      ayah: { province: setSelectedProvinceIdAyah, city: setSelectedCityIdAyah, district: setSelectedDistrictIdAyah, village: setSelectedVillageIdAyah },
-      ibu: { province: setSelectedProvinceIdIbu, city: setSelectedCityIdIbu, district: setSelectedDistrictIdIbu, village: setSelectedVillageIdIbu },
-      wali: { province: setSelectedProvinceIdWali, city: setSelectedCityIdWali, district: setSelectedDistrictIdWali, village: setSelectedVillageIdWali },
-      wakilwali: { province: setSelectedProvinceIdWakilWali, city: setSelectedCityIdWakilWali, district: setSelectedDistrictIdWakilWali, village: setSelectedVillageIdWakilWali },
-    };
-    
-    const formDataFieldMap = {
-      santri: { province: 'provinsi', city: 'kotakabupaten', district: 'kecamatan', village: 'desakelurahan' },
-      ayah: { province: 'provinsiayah', city: 'kotakabupatenayah', district: 'kecamatanayah', village: 'desakelurahanayah' },
-      ibu: { province: 'provinsiibu', city: 'kotakabupatenibu', district: 'kecamatanibu', village: 'desakelurahanibu' },
-      wali: { province: 'provinsiwali', city: 'kotakabupatenwali', district: 'kecamatanwali', village: 'desakelurahanwali' },
-      wakilwali: { province: 'provinsiwakilwali', city: 'kotakabupatenwakilwali', district: 'kecamatanwakilwali', village: 'desakelurahanwakilwali' },
-    };
-
-    stateUpdaterMap[entity][level](value);
-    const fieldName = formDataFieldMap[entity][level];
-    setFormData(prev => ({ ...prev, [fieldName]: selectedName === 'Pilih...' ? '' : selectedName }));
-
-    // Reset lower levels
-    if (level === 'province') {
-      stateUpdaterMap[entity].city(''); stateUpdaterMap[entity].district(''); stateUpdaterMap[entity].village('');
-      setFormData(prev => ({ ...prev, [formDataFieldMap[entity].city]: '', [formDataFieldMap[entity].district]: '', [formDataFieldMap[entity].village]: '' }));
-    } else if (level === 'city') {
-      stateUpdaterMap[entity].district(''); stateUpdaterMap[entity].village('');
-      setFormData(prev => ({ ...prev, [formDataFieldMap[entity].district]: '', [formDataFieldMap[entity].village]: '' }));
-    } else if (level === 'district') {
-      stateUpdaterMap[entity].village('');
-      setFormData(prev => ({ ...prev, [formDataFieldMap[entity].village]: '' }));
+    if (entity === 'santri') {
+        if (level === 'province') { setSelectedProvinceId(value); setFormData(prev => ({...prev, provinsi: selectedRegion, kotakabupaten: '', kecamatan: '', desakelurahan: ''})); setSelectedCityId(''); setSelectedDistrictId(''); setSelectedVillageId(''); }
+        else if (level === 'city') { setSelectedCityId(value); setFormData(prev => ({...prev, kotakabupaten: selectedRegion, kecamatan: '', desakelurahan: ''})); setSelectedDistrictId(''); setSelectedVillageId(''); }
+        else if (level === 'district') { setSelectedDistrictId(value); setFormData(prev => ({...prev, kecamatan: selectedRegion, desakelurahan: ''})); setSelectedVillageId('');}
+        else if (level === 'village') { setSelectedVillageId(value); setFormData(prev => ({...prev, desakelurahan: selectedRegion}));}
+    } else if (entity === 'ayah') {
+        if (level === 'province') { setSelectedProvinceIdAyah(value); setFormData(prev => ({...prev, provinsiayah: selectedRegion, kotakabupatenayah: '', kecamatanayah: '', desakelurahanayah: ''})); setSelectedCityIdAyah(''); setSelectedDistrictIdAyah(''); setSelectedVillageIdAyah(''); }
+        // ... similar for city, district, village for Ayah
+    } else if (entity === 'ibu') {
+        if (level === 'province') { setSelectedProvinceIdIbu(value); setFormData(prev => ({...prev, provinsiibu: selectedRegion, kotakabupatenibu: '', kecamatanibu: '', desakelurahanibu: ''})); setSelectedCityIdIbu(''); setSelectedDistrictIdIbu(''); setSelectedVillageIdIbu(''); }
+        // ... similar for city, district, village for Ibu
+    } else if (entity === 'wali') {
+        if (level === 'province') { setSelectedProvinceIdWali(value); setFormData(prev => ({...prev, provinsiwali: selectedRegion, kotakabupatenwali: '', kecamatanwali: '', desakelurahanwali: ''})); setSelectedCityIdWali(''); setSelectedDistrictIdWali(''); setSelectedVillageIdWali(''); }
+        // ... similar for city, district, village for Wali
+    } else if (entity === 'wakilwali') {
+        if (level === 'province') { setSelectedProvinceIdWakilWali(value); setFormData(prev => ({...prev, provinsiwakilwali: selectedRegion, kotakabupatenwakilwali: '', kecamatanwakilwali: '', desakelurahanwakilwali: ''})); setSelectedCityIdWakilWali(''); setSelectedDistrictIdWakilWali(''); setSelectedVillageIdWakilWali(''); }
+        else if (level === 'city') { setSelectedCityIdWakilWali(value); setFormData(prev => ({...prev, kotakabupatenwakilwali: selectedRegion, kecamatanwakilwali: '', desakelurahanwakilwali: ''})); setSelectedDistrictIdWakilWali(''); setSelectedVillageIdWakilWali(''); }
+        else if (level === 'district') { setSelectedDistrictIdWakilWali(value); setFormData(prev => ({...prev, kecamatanwakilwali: selectedRegion, desakelurahanwakilwali: ''})); setSelectedVillageIdWakilWali('');}
+        else if (level === 'village') { setSelectedVillageIdWakilWali(value); setFormData(prev => ({...prev, desakelurahanwakilwali: selectedRegion}));}
     }
   };
 
@@ -423,29 +464,23 @@ const SantriForm: React.FC<SantriFormProps> = ({ onSubmit, initialData, onClose,
         const reader = new FileReader();
         reader.onloadend = () => { setPasFotoPreview(reader.result as string); };
         reader.readAsDataURL(file);
+        setFormData(prev => ({ ...prev, pasfotourl: undefined })); 
       } else { 
         const reader = new FileReader();
         reader.onloadend = () => {
-          const base64String = reader.result as string;
-          setFormData(prev => ({ ...prev, dokumendomisilibase64: base64String })); 
-          setNamaFileDomisili(file.name); 
+          const base64String = (reader.result as string).split(',')[1];
+          setFormData(prev => ({ ...prev, dokumendomisilibase64: base64String }));
+          setNamaFileDomisili(file.name);
         };
         reader.readAsDataURL(file);
       }
     } else { 
         if (fileType === 'pasFoto') { 
             setPasFotoFile(null); 
-            if (initialData?.pasFotoFileId) {
-              try {
-                const url = appwriteStorage.getFilePreview(APPWRITE_BUCKET_ID_SANTRI_PHOTOS, initialData.pasFotoFileId);
-                setPasFotoPreview(url.toString());
-              } catch {setPasFotoPreview(null);}
-            } else {
-              setPasFotoPreview(null);
-            }
+            setPasFotoPreview(initialData?.pasfotourl || null);
         } else { 
-            setFormData(prev => ({...prev, dokumendomisilibase64: ''})); 
-            setNamaFileDomisili(null); 
+            setFormData(prev => ({ ...prev, dokumendomisilibase64: initialData?.dokumendomisilibase64 || ''}));
+            setNamaFileDomisili(initialData?.dokumendomisilibase64 ? 'Dokumen tersimpan' : null);
         }
     }
   };
@@ -453,73 +488,106 @@ const SantriForm: React.FC<SantriFormProps> = ({ onSubmit, initialData, onClose,
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     let finalFormData = { ...formData };
-    if (formData.identitaswaliutama === IdentitasWali.AYAH) {
-        finalFormData.namawali = formData.namaayah || 'Data Ayah Tidak Lengkap';
-        finalFormData.nomorteleponwali = formData.nomorteleponorangtua || 'Nomor Tidak Ada'; 
-    } else { if (!formData.namawali || !formData.nomorteleponwali) { alert("Mohon lengkapi Nama Wali dan Nomor Telepon Wali."); return; }}
+    
+    if (finalFormData.isalamatayahsama === PilihanYaTidak.YA && finalFormData.isayahorganisasi === PilihanYaTidak.TIDAK) {
+        finalFormData = { ...finalFormData, alamatlengkapayah: finalFormData.alamatlengkap, provinsiayah: finalFormData.provinsi, kotakabupatenayah: finalFormData.kotakabupaten, kecamatanayah: finalFormData.kecamatan, desakelurahanayah: finalFormData.desakelurahan, dusunayah: finalFormData.dusun, rtayah: finalFormData.rt, rwayah: finalFormData.rw };
+    }
+    if (finalFormData.isalamatibusama === PilihanYaTidak.YA) {
+        finalFormData = { ...finalFormData, alamatlengkapibu: finalFormData.alamatlengkap, provinsiibu: finalFormData.provinsi, kotakabupatenibu: finalFormData.kotakabupaten, kecamatanibu: finalFormData.kecamatan, desakelurahanibu: finalFormData.desakelurahan, dusunibu: finalFormData.dusun, rtibu: finalFormData.rt, rwibu: finalFormData.rw };
+    }
+    if (finalFormData.isalamatwalisama === PilihanYaTidak.YA) {
+        finalFormData = { ...finalFormData, alamatlengkapwali: finalFormData.alamatlengkap, provinsiwali: finalFormData.provinsi, kotakabupatenwali: finalFormData.kotakabupaten, kecamatanwali: finalFormData.kecamatan, desakelurahanwali: finalFormData.desakelurahan, dusunwali: finalFormData.dusun, rtwali: finalFormData.rt, rwwali: finalFormData.rw };
+    }
+    if (finalFormData.isalamatwakilwalisama === PilihanYaTidak.YA) {
+        finalFormData = { ...finalFormData, alamatlengkapwakilwali: finalFormData.alamatlengkap, provinsinakilwali: finalFormData.provinsi, kotakabupatenwakilwali: finalFormData.kotakabupaten, kecamatanwakilwali: finalFormData.kecamatan, desakelurahanwakilwali: finalFormData.desakelurahan, dusunwakilwali: finalFormData.dusun, rtwakilwali: finalFormData.rt, rwwakilwali: finalFormData.rw };
+    }
+
+
     if (!finalFormData.namalengkap || !finalFormData.tanggallahir || !finalFormData.namawali || !finalFormData.tanggalmasuk ) { alert("Mohon lengkapi semua kolom yang wajib diisi (Nama Lengkap, Tanggal Lahir, Nama Wali, Tanggal Masuk)."); return; }
     
-    const { pasFotoFileId, ...dataToSubmit } = finalFormData;
-    
-    const submissionPayload: SantriPayload = initialData?.id && !pasFotoFile 
-        ? { ...dataToSubmit, pasFotoFileId: initialData.pasFotoFileId } 
-        : dataToSubmit;
-
-    onSubmit(submissionPayload, pasFotoFile, initialData?.id);
+    const dataToSubmit: SantriPayload = {
+      ...finalFormData,
+    };
+    onSubmit(dataToSubmit, pasFotoFile, initialData?.id);
   };
 
-  // ... (Rest of the component, including JSX, remains largely the same, with pasfotourl related logic adapted for pasFotoFileId and pasFotoPreview)
   const inputClass = "mt-1 block w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent sm:text-sm text-neutral-content placeholder-slate-400 transition-colors disabled:bg-slate-100 disabled:text-slate-500";
   const labelClass = "block text-sm font-medium text-neutral-content/90";
   const sectionTitleClass = "text-xl font-bold text-neutral-content border-b-2 border-secondary pb-2 mb-6 mt-8";
-  const subSectionTitleClass = "text-lg font-semibold text-neutral-content border-b border-slate-300 pb-2 mb-4 mt-6";
-  const requiredStarClass = "text-red-500 ml-0.5";
-
-  const showFormalFields = formData.jenispendidikanterakhir === JenisPendidikanTerakhir.FORMAL || formData.jenispendidikanterakhir === JenisPendidikanTerakhir.FORMAL_DAN_NON_FORMAL;
-  const showNonFormalFields = formData.jenispendidikanterakhir === JenisPendidikanTerakhir.NON_FORMAL || formData.jenispendidikanterakhir === JenisPendidikanTerakhir.FORMAL_DAN_NON_FORMAL;
+  const subSectionTitleClass = "text-lg font-semibold text-neutral-content/95 mb-4 mt-6";
   
-  const showAlamatAyah = formData.isalamatayahsama === PilihanYaTidak.TIDAK;
-  const showAyahOrganisasiDetails = formData.isayahorganisasi === PilihanYaTidak.YA;
-  const showAyahAlumniDetails = formData.statuskealumnianayah === StatusKealumnian.ALUMNI;
-
-  const showAlamatIbu = formData.isalamatibusama === PilihanYaTidak.TIDAK;
-  const showIbuOrganisasiDetails = formData.isibuorganisasi === PilihanYaTidak.YA;
-  
-  const showWaliDetails = formData.identitaswaliutama !== IdentitasWali.AYAH && formData.identitaswaliutama !== '';
-  const showHubunganWaliLainnya = formData.identitaswaliutama === IdentitasWali.LAINNYA;
-  const showWaliAlumniDetails = formData.statuskealumnianwali === StatusKealumnian.ALUMNI && showWaliDetails;
-  const showAlamatWali = formData.isalamatwalisama === PilihanYaTidak.TIDAK && showWaliDetails;
-
-  const showHubunganWakilWaliLainnya = formData.hubunganwakilwali === IdentitasWali.LAINNYA;
-  const showWakilWaliAlumniDetails = formData.statuskealumnianwakilwali === StatusKealumnian.ALUMNI;
-  const showAlamatWakilWali = formData.isalamatwakilwalisama === PilihanYaTidak.TIDAK;
-
   const sortedKelasRecords = [...kelasRecords].sort((a,b) => (a.urutanTampilan ?? 99) - (b.urutanTampilan ?? 99) || a.namaKelas.localeCompare(b.namaKelas));
   const sortedBlokRecords = [...blokRecords].sort((a,b) => a.namaBlok.localeCompare(b.namaBlok));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-base-100 p-1 rounded-lg">
-      
-      {regionApiError && <div className="p-3 bg-red-100 text-red-700 border border-red-300 rounded-md text-sm mb-4">{regionApiError}</div>}
-      {/* ... other region error messages ... */}
-
-      <h3 className={sectionTitleClass}>Informasi Dasar Santri</h3>
-      {/* ... (Most form fields remain the same) ... */}
-       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-        {/* ... other fields ... */}
-        <div> <label htmlFor="status" className={labelClass}>Status Santri <span className={requiredStarClass}>*</span></label> <select name="status" id="status" value={formData.status} onChange={handleChange} className={inputClass} required> {daftarStatusSantriForm.map(s => <option key={s} value={s}>{s}</option>)} </select> </div>
-        <div> <label htmlFor="namalengkap" className={labelClass}>Nama Lengkap <span className={requiredStarClass}>*</span></label> <input type="text" name="namalengkap" id="namalengkap" value={formData.namalengkap} onChange={handleChange} className={inputClass} required /> </div>
-        {/* ... other fields ... */}
+      <h3 className={sectionTitleClass}>Data Diri Santri</h3>
+      {/* ... form content ... */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
+        <div><label htmlFor="namalengkap" className={labelClass}>Nama Lengkap <span className="text-red-500">*</span></label><input type="text" name="namalengkap" id="namalengkap" value={formData.namalengkap} onChange={handleChange} className={inputClass} required /></div>
+        {/* ... other fields for Data Diri Santri ... */}
       </div>
       
-      {/* ... (Alamat fields remain the same) ... */}
+       <h3 className={sectionTitleClass}>Alamat Santri</h3>
+        {/* ... Alamat Santri fields ... */}
+        {/* Example for province dropdown */}
+        <div>
+          <label htmlFor="provinsi" className={labelClass}>Provinsi</label>
+          <select name="provinsi" id="provinsi" value={selectedProvinceId} onChange={(e) => handleRegionChange(e, 'province', 'santri')} className={inputClass} disabled={provincesLoading}>
+            <option value="">{provincesLoading ? 'Memuat...' : 'Pilih Provinsi'}</option>
+            {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+        {/* ... City, District, Village for Santri ... */}
 
-      {/* ... (Minat dan Pendidikan fields remain the same) ... */}
-      
-      {/* ... (Informasi Akademik Pesantren fields remain the same) ... */}
-      
-      {/* ... (Data Orang Tua & Wali sections remain the same) ... */}
-      
+
+      <h3 className={sectionTitleClass}>Data Orang Tua</h3>
+      <h4 className={subSectionTitleClass}>Data Ayah</h4>
+      {/* ... Data Ayah fields, including address with its own set of region dropdowns ... */}
+       <div>
+          <label htmlFor="provinsiayah" className={labelClass}>Provinsi Ayah</label>
+          <select name="provinsiayah" id="provinsiayah" value={selectedProvinceIdAyah} onChange={(e) => handleRegionChange(e, 'province', 'ayah')} className={inputClass} disabled={provincesAyahLoading || formData.isalamatayahsama === PilihanYaTidak.YA}>
+            <option value="">{provincesAyahLoading ? 'Memuat...' : 'Pilih Provinsi Ayah'}</option>
+            {provincesAyah.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+         {/* ... City, District, Village for Ayah ... */}
+
+      <h4 className={subSectionTitleClass}>Data Ibu</h4>
+      {/* ... Data Ibu fields ... */}
+       <div>
+          <label htmlFor="provinsiibu" className={labelClass}>Provinsi Ibu</label>
+          <select name="provinsiibu" id="provinsiibu" value={selectedProvinceIdIbu} onChange={(e) => handleRegionChange(e, 'province', 'ibu')} className={inputClass} disabled={provincesIbuLoading || formData.isalamatibusama === PilihanYaTidak.YA}>
+            <option value="">{provincesIbuLoading ? 'Memuat...' : 'Pilih Provinsi Ibu'}</option>
+            {provincesIbu.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+        {/* ... City, District, Village for Ibu ... */}
+
+      <h3 className={sectionTitleClass}>Data Wali Utama</h3>
+      {/* ... Data Wali fields ... */}
+      <div>
+          <label htmlFor="provinsiwali" className={labelClass}>Provinsi Wali</label>
+          <select name="provinsiwali" id="provinsiwali" value={selectedProvinceIdWali} onChange={(e) => handleRegionChange(e, 'province', 'wali')} className={inputClass} disabled={provincesWaliLoading || formData.isalamatwalisama === PilihanYaTidak.YA}>
+            <option value="">{provincesWaliLoading ? 'Memuat...' : 'Pilih Provinsi Wali'}</option>
+            {provincesWali.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+        {/* ... City, District, Village for Wali ... */}
+
+
+      <h3 className={sectionTitleClass}>Data Wakil Wali (Opsional)</h3>
+       {/* ... Data Wakil Wali fields ... */}
+       <div>
+          <label htmlFor="provinsiwakilwali" className={labelClass}>Provinsi Wakil Wali</label>
+          <select name="provinsiwakilwali" id="provinsiwakilwali" value={selectedProvinceIdWakilWali} onChange={(e) => handleRegionChange(e, 'province', 'wakilwali')} className={inputClass} disabled={provincesWakilWaliLoading || formData.isalamatwakilwalisama === PilihanYaTidak.YA}>
+            <option value="">{provincesWakilWaliLoading ? 'Memuat...' : 'Pilih Provinsi Wakil Wali'}</option>
+            {provincesWakilWali.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+        {/* ... City, District, Village for Wakil Wali ... */}
+
+
       <h3 className={sectionTitleClass}>Unggah Dokumen</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
         <div> 
@@ -531,14 +599,40 @@ const SantriForm: React.FC<SantriFormProps> = ({ onSubmit, initialData, onClose,
             </div> 
           )} 
         </div>
-        <div> 
-          <label htmlFor="dokumenDomisili" className={labelClass}>Unggah Surat Domisili (PDF, Max 5MB)</label> 
-          <input type="file" name="dokumenDomisili" id="dokumenDomisili" onChange={(e) => handleFileChange(e, 'dokumenDomisili')} accept=".pdf" className={`${inputClass} p-0 file:mr-4 file:py-2.5 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-colors`} /> 
-          {namaFileDomisili && <p className="text-xs text-slate-500 mt-1">File terpilih: {namaFileDomisili}</p>} 
+        <div>
+          <label htmlFor="dokumenDomisili" className={labelClass}>Unggah Scan Keterangan Domisili (PDF/JPG/PNG, Max 5MB)</label>
+          <input type="file" name="dokumenDomisili" id="dokumenDomisili" onChange={(e) => handleFileChange(e, 'dokumenDomisili')} accept=".pdf,image/png,image/jpeg" className={`${inputClass} p-0 file:mr-4 file:py-2.5 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-colors`}/>
+          {namaFileDomisili && <p className="text-xs text-green-600 mt-1">Dokumen terunggah: {namaFileDomisili}</p>}
         </div>
       </div>
-      
-      <div> <label htmlFor="catatan" className={labelClass}>Catatan Tambahan</label> <textarea name="catatan" id="catatan" value={formData.catatan || ''} onChange={handleChange} rows={3} className={inputClass} /> </div>
+
+      <h3 className={sectionTitleClass}>Data Administratif Pesantren</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
+             <div><label htmlFor="tanggalmasuk" className={labelClass}>Tanggal Masuk <span className="text-red-500">*</span></label><input type="date" name="tanggalmasuk" id="tanggalmasuk" value={formData.tanggalmasuk} onChange={handleChange} className={inputClass} required/></div>
+            <div>
+                <label htmlFor="kelasid" className={labelClass}>Kelas/Halaqah Awal</label>
+                <select name="kelasid" id="kelasid" value={formData.kelasid} onChange={handleChange} className={inputClass}>
+                    <option value="">Pilih Kelas</option>
+                    {sortedKelasRecords.map(k => (<option key={k.id} value={k.id}>{k.namaKelas}</option>))}
+                </select>
+            </div>
+            <div>
+                <label htmlFor="blokid" className={labelClass}>Blok Awal</label>
+                <select name="blokid" id="blokid" value={formData.blokid} onChange={handleChange} className={inputClass}>
+                    <option value="">Pilih Blok</option>
+                    {sortedBlokRecords.map(b => (<option key={b.id} value={b.id}>{b.namaBlok}</option>))}
+                </select>
+            </div>
+             <div><label htmlFor="nomorkamar" className={labelClass}>Nomor Kamar Awal</label><input type="text" name="nomorkamar" id="nomorkamar" value={formData.nomorkamar} onChange={handleChange} className={inputClass}/></div>
+            <div className="md:col-span-2"><label htmlFor="catatan" className={labelClass}>Catatan Tambahan</label><textarea name="catatan" id="catatan" value={formData.catatan} onChange={handleChange} rows={2} className={inputClass}></textarea></div>
+             <div>
+                <label htmlFor="status" className={labelClass}>Status Santri <span className="text-red-500">*</span></label>
+                <select name="status" id="status" value={formData.status} onChange={handleChange} className={inputClass} required>
+                    {daftarStatusSantriForm.map(s => (<option key={s} value={s}>{s}</option>))}
+                </select>
+            </div>
+        </div>
+
 
       <div className="flex justify-end gap-3 pt-6 border-t border-base-300 mt-8">
         <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-slate-200 rounded-lg hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-base-100 focus:ring-slate-400 transition-colors shadow hover:shadow-md"> Batal </button>

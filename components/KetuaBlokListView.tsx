@@ -4,11 +4,11 @@ import { BlokRecord, Santri, KelasRecord, SantriStatus } from '../types';
 import UserIcon from './icons/UserIcon';
 import BuildingLibraryIcon from './icons/BuildingLibraryIcon'; 
 import UserGroupIcon from './icons/UserGroupIcon'; 
-import { storage as appwriteStorage, APPWRITE_BUCKET_ID_SANTRI_PHOTOS } from '../services/appwriteClient';
+// No Appwrite storage import
 
 interface KetuaBlokWithDetails extends BlokRecord {
   ketuaNama: string;
-  ketuaFotoUrl?: string | null;
+  ketuaFotoUrl?: string | null; // Will come from Santri.pasfotourl
   ketuaKelas: string;
   jumlahSantri: number;
 }
@@ -24,36 +24,20 @@ const KetuaBlokListView: React.FC<KetuaBlokListViewProps> = ({
   santriList,
   kelasRecords,
 }) => {
-  const [blokDetailsList, setBlokDetailsList] = useState<KetuaBlokWithDetails[]>([]);
-
-  useEffect(() => {
-    const fetchDetails = async () => {
-      const details = await Promise.all(blokRecords.map(async (blok) => {
-        const ketua = blok.ketuaBlokSantriId ? santriList.find(s => s.id === blok.ketuaBlokSantriId && s.status === SantriStatus.AKTIF) : null;
-        let ketuaFotoUrl: string | null = null;
-        if (ketua && ketua.pasFotoFileId) {
-          try {
-            const url = appwriteStorage.getFilePreview(APPWRITE_BUCKET_ID_SANTRI_PHOTOS, ketua.pasFotoFileId);
-            ketuaFotoUrl = url;
-          } catch (error) {
-            console.error(`Error fetching photo for ketua blok ${ketua.namalengkap}:`, error);
-          }
-        }
-        const jumlahSantri = santriList.filter(s => s.blokid === blok.id && s.status === SantriStatus.AKTIF).length;
-        const ketuaKelasName = ketua && ketua.kelasid ? kelasRecords.find(k => k.id === ketua.kelasid)?.namaKelas : 'N/A';
-        
-        return {
-          ...blok,
-          ketuaNama: ketua ? ketua.namalengkap : 'Belum Ditentukan',
-          ketuaFotoUrl,
-          ketuaKelas: ketuaKelasName || 'N/A', // Ensure it's a string
-          jumlahSantri,
-        };
-      }));
-      setBlokDetailsList(details.sort((a,b) => a.namaBlok.localeCompare(b.namaBlok)));
-    };
-
-    fetchDetails();
+  const blokDetailsList = useMemo(() => {
+    return blokRecords.map(blok => {
+      const ketua = blok.ketuaBlokSantriId ? santriList.find(s => s.id === blok.ketuaBlokSantriId && s.status === SantriStatus.AKTIF) : null;
+      const jumlahSantri = santriList.filter(s => s.blokid === blok.id && s.status === SantriStatus.AKTIF).length;
+      const ketuaKelasName = ketua && ketua.kelasid ? kelasRecords.find(k => k.id === ketua.kelasid)?.namaKelas : 'N/A';
+      
+      return {
+        ...blok,
+        ketuaNama: ketua ? ketua.namalengkap : 'Belum Ditentukan',
+        ketuaFotoUrl: ketua?.pasfotourl, // Use pasfotourl directly
+        ketuaKelas: ketuaKelasName || 'N/A',
+        jumlahSantri,
+      };
+    }).sort((a,b) => a.namaBlok.localeCompare(b.namaBlok));
   }, [blokRecords, santriList, kelasRecords]);
 
 
@@ -106,7 +90,7 @@ const KetuaBlokListView: React.FC<KetuaBlokListViewProps> = ({
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 bg-base-200 rounded-lg shadow">
+         <div className="text-center py-12 bg-base-200 rounded-lg shadow">
           <UserGroupIcon className="mx-auto h-16 w-16 text-slate-400 mb-5" />
           <h3 className="text-xl font-semibold text-neutral-content">Belum Ada Blok Didefinisikan</h3>
           <p className="mt-1 text-sm text-base-content/70">Data ketua blok akan muncul di sini setelah blok ditambahkan dan ketua blok ditentukan.</p>

@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
-import { BillDefinition, AppwriteDocument } from '../types';
+import { BillDefinition, SupabaseDefaultFields } from '../types';
 
-type BillDefinitionPayload = Omit<BillDefinition, 'id' | keyof AppwriteDocument>;
+type BillDefinitionPayload = Omit<BillDefinition, keyof SupabaseDefaultFields>;
 
 interface BillDefinitionFormModalProps {
   isOpen: boolean;
@@ -21,7 +21,7 @@ const BillDefinitionFormModal: React.FC<BillDefinitionFormModalProps> = ({
   const getInitialState = (): BillDefinitionPayload => ({
     namaTagihan: initialData?.namaTagihan || '',
     nominal: initialData?.nominal || 0,
-    tanggalJatuhTempo: initialData?.tanggalJatuhTempo || 10, // Default to 10th
+    tanggalJatuhTempo: initialData?.tanggalJatuhTempo || 10, 
     periodeTahun: initialData?.periodeTahun || '', 
     tanggalMulaiPenagihan: initialData?.tanggalMulaiPenagihan || '',
     tanggalAkhirPenagihan: initialData?.tanggalAkhirPenagihan || '',

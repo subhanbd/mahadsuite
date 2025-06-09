@@ -53,7 +53,6 @@ export type AppView =
   'BlokManagement' |     
   'KetuaBlokList' |
   'DataMunjiz' |
-  // Ujian views refactored
   'ManajemenUjianIqsam' |
   'ManajemenUjianTamrin';
 
@@ -102,18 +101,10 @@ export const userRoleDisplayNames: Record<UserRole, string> = {
   [UserRole.KEAMANAN]: 'Keamanan',
 };
 
-// Appwrite document properties for easier access
-export interface AppwriteDocument {
-  $id: string;
-  $collectionId: string;
-  $databaseId: string;
-  $createdAt: string;
-  $updatedAt: string;
-  $permissions: string[];
-}
+export type SupabaseDefaultFields = 'id' | 'created_at' | 'updated_at';
 
-export interface Santri extends AppwriteDocument {
-  id: string; // Will map to $id from Appwrite
+export interface Santri {
+  id: string; // UUID, primary key
   namalengkap: string; 
   namapanggilan?: string; 
   nomorindukkependudukan?: string; 
@@ -232,11 +223,13 @@ export interface Santri extends AppwriteDocument {
   nomorkamar?: string; 
   catatan?: string;
   
-  pasFotoFileId?: string; // Changed from pasfotourl
+  pasfotourl?: string; 
   dokumendomisilibase64?: string; 
 
   status: SantriStatus;
   daerahasal: string; 
+  created_at?: string; 
+  updated_at?: string; 
 }
 
 
@@ -299,12 +292,13 @@ export const daftarIdentitasWali: IdentitasWali[] = Object.values(IdentitasWali)
 
 
 // --- USER MANAGEMENT ---
-export interface User extends AppwriteDocument { // User profile stored in Appwrite collection
-  id: string; // Document $id for the profile
-  appwriteUserId: string; // Appwrite Account User ID ($id from account.get())
+export interface User { 
+  id: string; 
   username: string; 
   namaLengkap: string;
   role: UserRole;
+  created_at?: string;
+  updated_at?: string;
 }
 export const assignableUserRoles: UserRole[] = [
   UserRole.ASATIDZ,
@@ -316,8 +310,8 @@ export const assignableUserRoles: UserRole[] = [
 
 
 // --- FINANCIAL MANAGEMENT ---
-export interface BillDefinition extends AppwriteDocument {
-  id: string;
+export interface BillDefinition {
+  id: string; 
   namaTagihan: string;
   nominal: number;
   tanggalJatuhTempo: number; 
@@ -325,6 +319,8 @@ export interface BillDefinition extends AppwriteDocument {
   tanggalMulaiPenagihan?: string; 
   tanggalAkhirPenagihan?: string; 
   deskripsi?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // --- SANTRI PAYMENT MANAGEMENT ---
@@ -340,17 +336,19 @@ export enum PaymentMethod {
 }
 export const daftarPaymentMethod: PaymentMethod[] = Object.values(PaymentMethod);
 
-export interface SantriPaymentRecord extends AppwriteDocument {
-  id: string;
-  santriId: string; // Appwrite $id of the Santri document
-  billDefinitionId: string; // Appwrite $id of the BillDefinition document
+export interface SantriPaymentRecord {
+  id: string; 
+  santriId: string; 
+  billDefinitionId: string; 
   billingPeriod: string; 
   paymentStatus: PaymentStatus;
   amountPaid: number;
   paymentDate: string; 
   paymentMethod: PaymentMethod;
   notes?: string;
-  recordedAt: string; // Client-set timestamp for when the record was made in the app
+  recordedAt: string; 
+  created_at?: string;
+  updated_at?: string;
 }
 export interface PaymentConfirmationData {
   santriId: string;
@@ -371,14 +369,16 @@ export enum AttendanceStatus {
 }
 export const daftarAttendanceStatus: AttendanceStatus[] = Object.values(AttendanceStatus);
 
-export interface AttendanceRecord extends AppwriteDocument {
-  id: string;
-  santriId: string; // Appwrite $id of the Santri document
+export interface AttendanceRecord {
+  id: string; 
+  santriId: string; 
   date: string; 
   status: AttendanceStatus;
   notes?: string;
-  recordedAt: string; // Client-set timestamp
-  recordedBy: string; // User role or name
+  recordedAt: string; 
+  recordedBy: string; 
+  created_at?: string;
+  updated_at?: string;
 }
 export interface AttendanceSummary {
   santriId: string;
@@ -405,12 +405,14 @@ export interface RekapAbsensiPrintData {
 }
 
 // --- PESANTREN PROFILE ---
-export interface PesantrenProfileData extends AppwriteDocument {
-  id: string; // $id from Appwrite, will be set after creation/fetch
+export interface PesantrenProfileData {
+  id: string; 
   namaPesantren: string;
   alamatLengkap: string;
   kotaKabupaten?: string; 
   nomorTelepon?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // --- SANTRI DETAIL PDF EXPORT ---
@@ -420,7 +422,7 @@ export interface SantriDetailPrintData {
     printedByUserName: string;
     namaKelas?: string; 
     namaBlok?: string;  
-    pasFotoUrlForPdf?: string; // Temporary URL for PDF generation
+    pasFotoUrlForPdf?: string; 
 }
 
 // --- PERIZINAN SANTRI ---
@@ -438,9 +440,9 @@ export enum LeavePermitStatus {
 export const daftarLeaveType: LeaveType[] = Object.values(LeaveType);
 export const daftarLeavePermitStatus: LeavePermitStatus[] = Object.values(LeavePermitStatus);
 
-export interface LeavePermitRecord extends AppwriteDocument {
-  id: string;
-  santriId: string; // Appwrite $id of the Santri document
+export interface LeavePermitRecord {
+  id: string; 
+  santriId: string; 
   leaveType: LeaveType;
   reason?: string;
   leaveDate: string; 
@@ -452,13 +454,15 @@ export interface LeavePermitRecord extends AppwriteDocument {
   status: LeavePermitStatus;
   durationMinutes?: number | null; 
   recordedBy: string; 
-  recordedAt: string; // Client-set timestamp
+  recordedAt: string; 
+  created_at?: string;
+  updated_at?: string;
 }
 
 // --- CORET KTT ---
-export interface CoretKttRecord extends AppwriteDocument {
-  id: string;
-  santriId: string; // Appwrite $id of the Santri document
+export interface CoretKttRecord {
+  id: string; 
+  santriId: string; 
   santriNamaLengkap: string; 
   santriNomorKTT?: string;   
   santriKelasTerakhir?: string; 
@@ -469,7 +473,9 @@ export interface CoretKttRecord extends AppwriteDocument {
   durationOfStay: string; 
   ageAtDismissal: string; 
   recordedBy: string; 
-  recordedAt: string; // Client-set timestamp
+  recordedAt: string; 
+  created_at?: string;
+  updated_at?: string;
 }
 
 export type SantriDetailForCoretPrint = Pick<
@@ -497,20 +503,24 @@ export interface CoretKttPrintData {
 
 
 // --- KELAS MANAGEMENT ---
-export interface KelasRecord extends AppwriteDocument {
-  id: string;
+export interface KelasRecord {
+  id: string; 
   namaKelas: string;
   urutanTampilan?: number;
   deskripsi?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // --- BLOK MANAGEMENT ---
-export interface BlokRecord extends AppwriteDocument {
-  id: string;
+export interface BlokRecord {
+  id: string; 
   namaBlok: string;
-  ketuaBlokSantriId?: string; // Appwrite $id of the Santri document
+  ketuaBlokSantriId?: string; 
   jumlahKamar?: number;
   deskripsi?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // --- REFACTORED UJIAN MANAGEMENT ---
@@ -519,20 +529,21 @@ export enum IqsamPeriodeRefactored {
   AKHIR_TAHUN = 'Iqsam Akhir Tahun' 
 }
 
-export interface IqsamExam extends AppwriteDocument { // Was IqsamSession
-  id: string;
-  kelasId: string; // Appwrite $id of the KelasRecord document
+export interface IqsamExam { 
+  id: string; 
+  kelasId: string; 
   periode: IqsamPeriodeRefactored;
   tahunAjaran: string; 
   mataPelajaran: string; 
   tanggalUjian: string; 
   jamMulaiUjian?: string; 
   jamSelesaiUjian?: string; 
-  // createdAt is $createdAt from AppwriteDocument
   tanggalBukaPendaftaran?: string; 
   tanggalTutupPendaftaran?: string; 
   status?: IqsamSessionStatus; 
   deskripsi?: string; 
+  created_at?: string;
+  updated_at?: string;
 }
 
 export enum IqsamSessionStatus {
@@ -543,61 +554,69 @@ export enum IqsamSessionStatus {
   DIBATALKAN = 'Dibatalkan',
 }
 
-export interface IqsamRegistrationRecord extends AppwriteDocument {
-  id: string;
-  iqsamSessionId: string; // $id of IqsamExam
-  santriId: string; // $id of Santri
+export interface IqsamRegistrationRecord {
+  id: string; 
+  iqsamSessionId: string; 
+  santriId: string; 
   tanggalRegistrasi: string; 
+  created_at?: string;
+  updated_at?: string;
 }
 
-export interface IqsamScoreRecord extends AppwriteDocument {
-  id: string;
-  iqsamExamId: string; // $id of IqsamExam
-  santriId: string; // $id of Santri
+export interface IqsamScoreRecord {
+  id: string; 
+  iqsamExamId: string; 
+  santriId: string; 
   kehadiran: AttendanceStatus;
   nilaiAngka?: number; 
   catatan?: string;
-  lastUpdatedAt: string; // Client-set timestamp
+  lastUpdatedAt: string; 
+  created_at?: string;
 }
 
-export interface IqsamSubjectScore { // This represents a score for ONE subject within an IqsamResult.
-  mataPelajaran: string; // For Iqsam, this will match IqsamExam.mataPelajaran
+export interface IqsamSubjectScore { 
+  mataPelajaran: string; 
   nilaiAngka?: number;
   catatan?: string;
 }
 
-export interface IqsamResult extends AppwriteDocument { 
-  id: string;
-  iqsamRegistrationId: string; // Link to the registration
-  santriId: string; // $id of Santri
-  iqsamSessionId: string; // $id of IqsamExam (redundant if iqsamRegistrationId is used, but good for query)
-  kehadiranKeseluruhan: AttendanceStatus; // Overall attendance for the exam event
+export interface IqsamResult { 
+  id: string; 
+  iqsamRegistrationId: string; 
+  santriId: string; 
+  iqsamSessionId: string; 
+  kehadiranKeseluruhan: AttendanceStatus; 
   catatanKehadiran?: string;
-  scores: IqsamSubjectScore[]; // Array of scores if multi-subject, or single element array
-  lastUpdated: string; // Client-set
+  scores: IqsamSubjectScore[]; 
+  lastUpdated: string; 
+  created_at?: string;
+  updated_at?: string; 
 }
 
 
-export interface TamrinExam extends AppwriteDocument { 
-  id: string;
+export interface TamrinExam { 
+  id: string; 
   namaTamrin: string;
-  kelasId: string; // $id of KelasRecord
-  asatidzId: string; // $id of User (Asatidz)
+  kelasId: string; 
+  asatidzId: string; 
   tanggalPelaksanaan: string; 
   deskripsi?: string;
-  // createdAt is $createdAt from AppwriteDocument
+  created_at?: string;
+  updated_at?: string;
 }
-export type TamrinExamPayload = Omit<TamrinExam, 'id' | keyof AppwriteDocument>;
+export type TamrinExamPayload = Omit<TamrinExam, 'id' | 'created_at' | 'updated_at'>;
 
 
-export interface TamrinScoreRecord extends AppwriteDocument { 
-  id: string;
-  tamrinExamId: string; // $id of TamrinExam
-  santriId: string; // $id of Santri
+export interface TamrinScoreRecord { 
+  id: string; 
+  tamrinExamId: string; 
+  santriId: string; 
   kehadiran: AttendanceStatus;
   nilaiAngka?: number;
   nilaiHuruf?: string; 
   catatan?: string;
-  lastUpdatedAt: string; // Client-set
+  lastUpdatedAt: string; 
+  created_at?: string;
+  updated_at?: string; 
 }
-export type TamrinScorePayload = Omit<TamrinScoreRecord, 'id' | keyof AppwriteDocument>;
+export type TamrinScorePayload = Omit<TamrinScoreRecord, 'id' | 'created_at' | 'updated_at'>;

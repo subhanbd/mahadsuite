@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
-import { KelasRecord, AppwriteDocument } from '../types';
+import { KelasRecord, SupabaseDefaultFields } from '../types';
 
-type KelasPayload = Omit<KelasRecord, 'id' | keyof AppwriteDocument>;
+type KelasPayload = Omit<KelasRecord, keyof SupabaseDefaultFields>;
 
 interface KelasFormModalProps {
   isOpen: boolean;
@@ -62,7 +62,7 @@ const KelasFormModal: React.FC<KelasFormModalProps> = ({ isOpen, onClose, onSubm
         </div>
         <div>
           <label htmlFor="deskripsi" className={labelClass}>Deskripsi (Opsional)</label>
-          <textarea name="deskripsi" id="deskripsi" value={formData.deskripsi} onChange={handleChange} rows={3} className={inputClass} placeholder="Deskripsi singkat mengenai kelas ini..." />
+          <textarea name="deskripsi" id="deskripsi" value={formData.deskripsi || ''} onChange={handleChange} rows={3} className={inputClass} placeholder="Deskripsi singkat mengenai kelas ini..." />
         </div>
         <div className="flex justify-end gap-3 pt-5 border-t border-base-300 mt-6">
           <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-slate-200 rounded-lg hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-base-100 focus:ring-slate-400 transition-colors shadow hover:shadow-md">

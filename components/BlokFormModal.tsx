@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
-import { BlokRecord, Santri, SantriStatus, AppwriteDocument } from '../types';
+import { BlokRecord, Santri, SantriStatus, SupabaseDefaultFields } from '../types';
 
-type BlokPayload = Omit<BlokRecord, 'id' | keyof AppwriteDocument>;
+type BlokPayload = Omit<BlokRecord, keyof SupabaseDefaultFields>;
 
 interface BlokFormModalProps {
   isOpen: boolean;
@@ -22,7 +22,7 @@ const BlokFormModal: React.FC<BlokFormModalProps> = ({
 }) => {
   const getInitialState = (): BlokPayload => ({
     namaBlok: initialData?.namaBlok || '',
-    ketuaBlokSantriId: initialData?.ketuaBlokSantriId || undefined, // Ensure undefined if not set
+    ketuaBlokSantriId: initialData?.ketuaBlokSantriId || undefined, 
     jumlahKamar: initialData?.jumlahKamar === undefined ? undefined : Number(initialData.jumlahKamar),
     deskripsi: initialData?.deskripsi || '',
   });
@@ -67,7 +67,7 @@ const BlokFormModal: React.FC<BlokFormModalProps> = ({
         namaBlok: formData.namaBlok,
         ketuaBlokSantriId: formData.ketuaBlokSantriId || undefined, 
         jumlahKamar: formData.jumlahKamar,
-        deskripsi: formData.deskripsi,
+        deskripsi: formData.deskripsi || '',
     };
 
     onSubmit(dataToSubmit, initialData?.id);
@@ -107,7 +107,7 @@ const BlokFormModal: React.FC<BlokFormModalProps> = ({
         </div>
         <div>
           <label htmlFor="deskripsi" className={labelClass}>Deskripsi (Opsional)</label>
-          <textarea name="deskripsi" id="deskripsi" value={formData.deskripsi} onChange={handleChange} rows={3} className={inputClass} placeholder="Deskripsi singkat mengenai blok ini..." />
+          <textarea name="deskripsi" id="deskripsi" value={formData.deskripsi || ''} onChange={handleChange} rows={3} className={inputClass} placeholder="Deskripsi singkat mengenai blok ini..." />
         </div>
         <div className="flex justify-end gap-3 pt-5 border-t border-base-300 mt-6">
           <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-slate-200 rounded-lg hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-base-100 focus:ring-slate-400 transition-colors shadow hover:shadow-md">
