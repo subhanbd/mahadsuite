@@ -545,6 +545,7 @@ export interface IqsamExam {
   created_at?: string;
   updated_at?: string;
 }
+export type IqsamExamPayload = Omit<IqsamExam, SupabaseDefaultFields>;
 
 export enum IqsamSessionStatus {
   PENDAFTARAN_DIBUKA = 'Pendaftaran Dibuka',
@@ -556,7 +557,7 @@ export enum IqsamSessionStatus {
 
 export interface IqsamRegistrationRecord {
   id: string; 
-  iqsamSessionId: string; 
+  iqsamSessionId: string; // This is effectively IqsamExam.id
   santriId: string; 
   tanggalRegistrasi: string; 
   created_at?: string;
@@ -565,33 +566,37 @@ export interface IqsamRegistrationRecord {
 
 export interface IqsamScoreRecord {
   id: string; 
-  iqsamExamId: string; 
+  iqsamExamId: string; // Links to IqsamExam.id
   santriId: string; 
-  kehadiran: AttendanceStatus;
-  nilaiAngka?: number; 
-  catatan?: string;
+  kehadiran: AttendanceStatus; // Overall attendance for this exam
+  nilaiAngka?: number; // Score for this specific exam (subject defined in IqsamExam)
+  catatan?: string; // Notes for this specific exam score
   lastUpdatedAt: string; 
   created_at?: string;
+  updated_at?: string; 
 }
+export type IqsamScorePayload = Omit<IqsamScoreRecord, SupabaseDefaultFields>;
 
-export interface IqsamSubjectScore { 
-  mataPelajaran: string; 
+
+export interface IqsamSubjectScore { // This type is used if an "IqsamResult" aggregates multiple subjects, which seems to be the case with IqsamNilaiPerSantriModal
+  mataPelajaran: string; // Name of the subject within the result
   nilaiAngka?: number;
   catatan?: string;
 }
 
-export interface IqsamResult { 
+export interface IqsamResult { // Represents an aggregated result for a santri for a particular Iqsam session/registration.
   id: string; 
-  iqsamRegistrationId: string; 
+  iqsamRegistrationId: string; // Links to IqsamRegistrationRecord.id
   santriId: string; 
-  iqsamSessionId: string; 
+  iqsamSessionId: string; // This is IqsamExam.id
   kehadiranKeseluruhan: AttendanceStatus; 
-  catatanKehadiran?: string;
-  scores: IqsamSubjectScore[]; 
+  catatanKehadiran?: string; // Overall notes for attendance
+  scores: IqsamSubjectScore[]; // Array of scores for potentially multiple subjects under this "result" umbrella.
   lastUpdated: string; 
   created_at?: string;
   updated_at?: string; 
 }
+export type IqsamResultPayload = Omit<IqsamResult, SupabaseDefaultFields>;
 
 
 export interface TamrinExam { 
@@ -604,7 +609,7 @@ export interface TamrinExam {
   created_at?: string;
   updated_at?: string;
 }
-export type TamrinExamPayload = Omit<TamrinExam, 'id' | 'created_at' | 'updated_at'>;
+export type TamrinExamPayload = Omit<TamrinExam, SupabaseDefaultFields>;
 
 
 export interface TamrinScoreRecord { 
@@ -619,4 +624,4 @@ export interface TamrinScoreRecord {
   created_at?: string;
   updated_at?: string; 
 }
-export type TamrinScorePayload = Omit<TamrinScoreRecord, 'id' | 'created_at' | 'updated_at'>;
+export type TamrinScorePayload = Omit<TamrinScoreRecord, SupabaseDefaultFields>;

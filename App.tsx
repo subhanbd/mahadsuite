@@ -11,7 +11,8 @@ import {
   CoretKttPrintData, SantriDetailForCoretPrint, 
   KelasRecord, BlokRecord, 
   IqsamExam, IqsamScoreRecord, TamrinExam, TamrinScoreRecord, IqsamPeriodeRefactored, AttendanceStatus as UjianAttendanceStatus,
-  TamrinExamPayload, TamrinScorePayload
+  TamrinExamPayload, TamrinScorePayload,
+  IqsamRegistrationRecord, IqsamResult, SupabaseDefaultFields // Added IqsamRegistrationRecord, IqsamResult
 } from './types';
 
 import Navbar from './components/Navbar'; 
@@ -93,8 +94,10 @@ interface ReceiptDataForPrint {
   namaKelas?: string; 
 }
 
-type IqsamExamPayload = Omit<IqsamExam, 'id' | 'created_at' | 'updated_at'>;
-type IqsamScorePayload = Omit<IqsamScoreRecord, 'id' | 'created_at' | 'updated_at'>;
+type IqsamExamPayload = Omit<IqsamExam, SupabaseDefaultFields>;
+type IqsamScorePayload = Omit<IqsamScoreRecord, SupabaseDefaultFields>; // Includes lastUpdatedAt
+type IqsamResultPayload = Omit<IqsamResult, SupabaseDefaultFields>; // Includes lastUpdated
+
 
 const App: React.FC = () => {
   // State variables (most can remain, some might need type adjustments for Supabase)
@@ -110,8 +113,12 @@ const App: React.FC = () => {
   const [coretKttRecords, setCoretKttRecords] = useState<CoretKttRecord[]>([]);
   const [kelasRecords, setKelasRecords] = useState<KelasRecord[]>([]);
   const [blokRecords, setBlokRecords] = useState<BlokRecord[]>([]);
+  
   const [iqsamExams, setIqsamExams] = useState<IqsamExam[]>([]);
+  const [iqsamRegistrations, setIqsamRegistrations] = useState<IqsamRegistrationRecord[]>([]);
   const [iqsamScoreRecords, setIqsamScoreRecords] = useState<IqsamScoreRecord[]>([]);
+  const [iqsamResults, setIqsamResults] = useState<IqsamResult[]>([]);
+  
   const [tamrinExams, setTamrinExams] = useState<TamrinExam[]>([]);
   const [tamrinScoreRecords, setTamrinScoreRecords] = useState<TamrinScoreRecord[]>([]);
   
@@ -169,13 +176,16 @@ const App: React.FC = () => {
   const fetchSantri = useCallback(() => fetchGenericTable<Santri>('santri', setSantriList), [fetchGenericTable]);
   const fetchUsers = useCallback(() => fetchGenericTable<User>('user_profiles', setUserList), [fetchGenericTable]);
   const fetchBillDefinitions = useCallback(() => fetchGenericTable<BillDefinition>('bill_definitions', setBillDefinitions), [fetchGenericTable]);
-  // ... (similar fetch functions for other tables) ...
   const fetchSantriPaymentRecords = useCallback(() => fetchGenericTable<SantriPaymentRecord>('santri_payments', setSantriPaymentRecords), [fetchGenericTable]);
   const fetchAttendanceRecords = useCallback(() => fetchGenericTable<AttendanceRecord>('attendance_records', setAttendanceRecords), [fetchGenericTable]);
   const fetchLeavePermitRecords = useCallback(() => fetchGenericTable<LeavePermitRecord>('leave_permits', setLeavePermitRecords), [fetchGenericTable]);
   const fetchCoretKttRecords = useCallback(() => fetchGenericTable<CoretKttRecord>('coret_ktt_records', setCoretKttRecords), [fetchGenericTable]);
+  
   const fetchIqsamExams = useCallback(() => fetchGenericTable<IqsamExam>('iqsam_exams', setIqsamExams), [fetchGenericTable]);
+  const fetchIqsamRegistrations = useCallback(() => fetchGenericTable<IqsamRegistrationRecord>('iqsam_registrations', setIqsamRegistrations), [fetchGenericTable]);
   const fetchIqsamScoreRecords = useCallback(() => fetchGenericTable<IqsamScoreRecord>('iqsam_score_records', setIqsamScoreRecords), [fetchGenericTable]);
+  const fetchIqsamResults = useCallback(() => fetchGenericTable<IqsamResult>('iqsam_results', setIqsamResults), [fetchGenericTable]);
+
   const fetchTamrinExams = useCallback(() => fetchGenericTable<TamrinExam>('tamrin_exams', setTamrinExams), [fetchGenericTable]);
   const fetchTamrinScoreRecords = useCallback(() => fetchGenericTable<TamrinScoreRecord>('tamrin_score_records', setTamrinScoreRecords), [fetchGenericTable]);
 
@@ -291,8 +301,10 @@ const App: React.FC = () => {
         await Promise.all([
           fetchSantri(), fetchUsers(), fetchBillDefinitions(), fetchSantriPaymentRecords(),
           fetchAttendanceRecords(), fetchPesantrenProfile(true), fetchLeavePermitRecords(),
-          fetchCoretKttRecords(), fetchIqsamExams(), fetchIqsamScoreRecords(),
-          fetchTamrinExams(), fetchTamrinScoreRecords(), fetchKelasRecords(true), fetchBlokRecords(true)
+          fetchCoretKttRecords(), 
+          fetchIqsamExams(), fetchIqsamRegistrations(), fetchIqsamScoreRecords(), fetchIqsamResults(),
+          fetchTamrinExams(), fetchTamrinScoreRecords(), 
+          fetchKelasRecords(true), fetchBlokRecords(true)
         ]);
       } catch (error) {
         console.error("Error fetching all app data with Supabase:", error);
@@ -301,7 +313,13 @@ const App: React.FC = () => {
       }
     };
     fetchAllInitialData();
-  }, [isLoggedIn, fetchSantri, fetchUsers, fetchBillDefinitions, fetchSantriPaymentRecords, fetchAttendanceRecords, fetchPesantrenProfile, fetchLeavePermitRecords, fetchCoretKttRecords, fetchIqsamExams, fetchIqsamScoreRecords, fetchTamrinExams, fetchTamrinScoreRecords, fetchKelasRecords, fetchBlokRecords ]);
+  }, [
+      isLoggedIn, fetchSantri, fetchUsers, fetchBillDefinitions, fetchSantriPaymentRecords, 
+      fetchAttendanceRecords, fetchPesantrenProfile, fetchLeavePermitRecords, fetchCoretKttRecords, 
+      fetchIqsamExams, fetchIqsamRegistrations, fetchIqsamScoreRecords, fetchIqsamResults,
+      fetchTamrinExams, fetchTamrinScoreRecords, 
+      fetchKelasRecords, fetchBlokRecords 
+  ]);
 
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -471,9 +489,64 @@ const App: React.FC = () => {
   const handleDeleteBlokClick = (id: string) => { /* ... */ };
   const confirmDeleteBlok = async () => { /* ... */ };
   const handleSaveBlok = async (data: Omit<BlokRecord, 'id' | 'created_at' | 'updated_at'>, docId?: string) => { /* ... */ };
-  const handleSaveIqsamExam = (exam: IqsamExamPayload, existingExamId?: string): string => { return existingExamId || crypto.randomUUID(); };
-  const handleSaveIqsamScoreRecords = async (records: IqsamScorePayload[]) => { /* ... */ };
-  const handleDeleteIqsamExamAndScores = async (examId: string) => { /* ... */ };
+  
+  // Iqsam Handlers
+  const handleSaveIqsamExam = (exam: IqsamExamPayload, existingExamId?: string): string => { 
+      // Placeholder: In a real app, this would call Supabase
+      console.log("Saving/Updating Iqsam Exam:", exam, existingExamId);
+      const idToReturn = existingExamId || crypto.randomUUID();
+      if (existingExamId) {
+          setIqsamExams(prev => prev.map(e => e.id === existingExamId ? { ...e, ...exam, id: existingExamId, created_at: e.created_at, updated_at: new Date().toISOString() } : e));
+      } else {
+          setIqsamExams(prev => [...prev, { ...exam, id: idToReturn, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }]);
+      }
+      return idToReturn;
+  };
+  const handleSaveIqsamScoreRecords = async (records: IqsamScorePayload[]) => { 
+      console.log("Saving Iqsam Scores (individual records):", records);
+      // Placeholder: Batch update/insert IqsamScoreRecord
+      // This function might need to be more complex if it's upserting.
+      // For now, just log. We'll use onSaveIqsamResult for the aggregate.
+  };
+  const handleSaveIqsamResult = async (resultData: IqsamResultPayload) => {
+      console.log("Saving Iqsam Result (aggregate):", resultData);
+      // Placeholder: Upsert into iqsam_results table
+      const existingResultIndex = iqsamResults.findIndex(r => r.iqsamRegistrationId === resultData.iqsamRegistrationId && r.santriId === resultData.santriId && r.iqsamSessionId === resultData.iqsamSessionId);
+      if (existingResultIndex > -1) {
+          setIqsamResults(prev => prev.map((r, i) => i === existingResultIndex ? { ...r, ...resultData, id: r.id, updated_at: new Date().toISOString(), lastUpdated: new Date().toISOString() } : r));
+      } else {
+          setIqsamResults(prev => [...prev, { ...resultData, id: crypto.randomUUID(), created_at: new Date().toISOString(), updated_at: new Date().toISOString(), lastUpdated: new Date().toISOString() }]);
+      }
+  };
+
+  const handleDeleteIqsamExamAndScores = async (examId: string) => { 
+      console.log("Deleting Iqsam Exam and related data for examId:", examId);
+      setIqsamExams(prev => prev.filter(e => e.id !== examId));
+      setIqsamRegistrations(prev => prev.filter(r => r.iqsamSessionId !== examId));
+      setIqsamResults(prev => prev.filter(r => r.iqsamSessionId !== examId));
+      // Also delete from iqsamScoreRecords if that's the granular store
+      setIqsamScoreRecords(prev => prev.filter(sr => sr.iqsamExamId !== examId));
+  };
+  const handleRegisterSantriForIqsam = (iqsamSessionId: string, santriIds: string[]) => {
+      console.log("Registering santri for Iqsam:", iqsamSessionId, santriIds);
+      const newRegistrations: IqsamRegistrationRecord[] = santriIds.map(santriId => ({
+          id: crypto.randomUUID(),
+          iqsamSessionId,
+          santriId,
+          tanggalRegistrasi: new Date().toISOString().split('T')[0],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+      }));
+      setIqsamRegistrations(prev => [...prev, ...newRegistrations]);
+  };
+  const handleCancelIqsamRegistration = (registrationId: string) => {
+      console.log("Cancelling Iqsam registration:", registrationId);
+      setIqsamRegistrations(prev => prev.filter(r => r.id !== registrationId));
+      // Also remove associated results if any
+      setIqsamResults(prev => prev.filter(r => r.iqsamRegistrationId !== registrationId));
+  };
+
+
   const handleSaveTamrinExam = (exam: TamrinExamPayload, existingExamId?: string): string => { return existingExamId || crypto.randomUUID(); };
   const handleSaveTamrinScoreRecords = async (records: TamrinScorePayload[]) => { /* ... */ };
   const handleDeleteTamrinExamAndScores = async (examId: string) => { /* ... */ };
@@ -515,7 +588,21 @@ const App: React.FC = () => {
       case 'KelasManagement': return <KelasManagementView kelasRecords={kelasRecords} onAddKelas={handleAddKelasClick} onEditKelas={handleEditKelasClick} onDeleteKelas={handleDeleteKelasClick} />;
       case 'BlokManagement': return <BlokManagementView blokRecords={blokRecords} activeSantriList={activeSantriList} onAddBlok={handleAddBlokClick} onEditBlok={handleEditBlokClick} onDeleteBlok={handleDeleteBlokClick} />;
       case 'KetuaBlokList': return <KetuaBlokListView blokRecords={blokRecords} santriList={santriList} kelasRecords={kelasRecords} />;
-      case 'ManajemenUjianIqsam': return <ManajemenUjianIqsamView activeSantriList={activeSantriList} kelasRecords={kelasRecords} iqsamExams={iqsamExams} iqsamScoreRecords={iqsamScoreRecords} onSaveExam={handleSaveIqsamExam} onSaveScores={handleSaveIqsamScoreRecords} onDeleteExamAndScores={handleDeleteIqsamExamAndScores} currentUserRole={currentUserRole} />;
+      case 'ManajemenUjianIqsam': return <ManajemenUjianIqsamView
+        activeSantriList={activeSantriList}
+        kelasRecords={kelasRecords}
+        iqsamExams={iqsamExams}
+        iqsamRegistrations={iqsamRegistrations}
+        iqsamScoreRecords={iqsamScoreRecords}
+        iqsamResults={iqsamResults}
+        onSaveExam={handleSaveIqsamExam}
+        onSaveScores={handleSaveIqsamScoreRecords} // For raw scores if needed
+        onSaveResult={handleSaveIqsamResult} // For aggregated results
+        onDeleteExamAndScores={handleDeleteIqsamExamAndScores}
+        onRegisterSantriForIqsam={handleRegisterSantriForIqsam}
+        onCancelIqsamRegistration={handleCancelIqsamRegistration}
+        currentUserRole={currentUserRole}
+      />;
       case 'ManajemenUjianTamrin': return <ManajemenUjianTamrinView activeSantriList={activeSantriList} kelasRecords={kelasRecords} asatidzList={userList.filter(u => u.role === UserRole.ASATIDZ)} tamrinExams={tamrinExams} tamrinScoreRecords={tamrinScoreRecords} onSaveExam={handleSaveTamrinExam} onSaveScores={handleSaveTamrinScoreRecords} onDeleteExamAndScores={handleDeleteTamrinExamAndScores} currentUserRole={currentUserRole} />;
       default: return <PlaceholderView title={activeView} message="Halaman ini belum diimplementasikan sepenuhnya dengan Supabase." />;
     }
