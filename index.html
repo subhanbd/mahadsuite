@@ -1,0 +1,91 @@
+
+<!DOCTYPE html>
+<html lang="en" data-theme="cupcake">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ma’had Suite</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "@/": "/", 
+      "react": "https://esm.sh/react@^19.1.0",
+      "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+      "react/": "https://esm.sh/react@^19.1.0/",
+      "appwrite": "https://esm.sh/appwrite@^18.1.1"
+    }
+  }
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- DaisyUI CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    /* Custom scrollbar for better aesthetics - Cupcake theme colors */
+    ::-webkit-scrollbar {
+      width: 10px; 
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      /* A light, neutral background for the track, matching cupcake's base */
+      background: #FAF7F5; /* Cupcake's base-100 or similar */
+      border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb {
+      /* A soft accent color from cupcake theme */
+      background: #65C3C8; /* Cupcake's primary or secondary color */
+      border-radius: 5px;
+      border: 2px solid #FAF7F5; 
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #53A2A7; /* Darker shade of the thumb color */
+    }
+    
+    html, body, #root {
+      height: 100%;
+      margin: 0;
+      font-family: 'Inter', sans-serif; 
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+        -webkit-print-color-adjust: exact !important; 
+        color-adjust: exact !important; 
+      }
+
+      .print-section {
+        visibility: visible !important;
+        display: block !important; 
+        position: absolute !important;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: auto;
+        overflow: visible; 
+      }
+      
+      #santri-detail-print-content, 
+      #rekap-absensi-print-content,
+      #coret-ktt-print-content,
+      #payment-receipt-print-content { 
+        visibility: visible !important;
+        display: block !important;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      body > *:not(.print-section) {
+        display: none !important;
+      }
+    }
+  </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

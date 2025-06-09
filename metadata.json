@@ -1,0 +1,6 @@
+{
+  "name": "Ma’had Suite",
+  "description": "A modern web application for managing a database of santri (students in Islamic boarding schools). Allows adding, viewing, editing, searching, and deleting santri records. Data is stored locally in the browser.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
