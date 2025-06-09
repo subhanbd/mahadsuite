@@ -1,12 +1,11 @@
-
 {
   "name": "mahad-suite-app",
   "version": "1.0.0",
   "private": true,
-  "description": "Ma'had Suite Application - Static frontend with Appwrite backend",
+  "description": "Ma'had Suite Application - Static frontend with Supabase backend",
   "scripts": {
     "start": "echo \"No start script. Serve index.html\"",
-    "build": "rm -rf public && mkdir public && cp index.html public/ && cp index.tsx public/ && cp App.tsx public/ && cp types.ts public/ && cp metadata.json public/ && cp -R components public/ && cp -R hooks public/ && cp -R services public/"
+    "build": "rm -rf public && mkdir public && cp index.html public/ && cp index.tsx public/ && cp App.tsx public/ && cp types.ts public/ && cp metadata.json public/ && cp index.css public/ && cp -R components public/ && cp -R hooks public/ && cp -R services public/"
   },
   "dependencies": {},
   "devDependencies": {}
