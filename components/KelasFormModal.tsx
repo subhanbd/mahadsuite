@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { KelasRecord, SupabaseDefaultFields } from '../types';
 
-type KelasPayload = Omit<KelasRecord, keyof SupabaseDefaultFields>;
+type KelasPayload = Omit<KelasRecord, SupabaseDefaultFields>;
 
 interface KelasFormModalProps {
   isOpen: boolean;

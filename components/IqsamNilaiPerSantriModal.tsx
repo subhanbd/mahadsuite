@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
-import { IqsamResult, IqsamSubjectScore, AttendanceStatus, AppwriteDocument } from '../types'; // Updated imports
+import { IqsamResult, IqsamSubjectScore, AttendanceStatus, SupabaseDefaultFields } from '../types'; 
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 
-type IqsamResultPayload = Omit<IqsamResult, 'id' | 'lastUpdated' | keyof AppwriteDocument>;
+type IqsamResultPayload = Omit<IqsamResult, SupabaseDefaultFields | 'lastUpdated'>;
 
 interface IqsamNilaiSantriModalProps {
   isOpen: boolean;
@@ -150,7 +150,7 @@ const IqsamNilaiSantriModal: React.FC<IqsamNilaiSantriModalProps> = ({
       </div>
 
       <div className="flex justify-end gap-3 pt-5 border-t border-base-300 mt-6">
-        <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-slate-200 rounded-lg hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-base-100 focus:ring-slate-400 shadow hover:shadow-md">Batal</button>
+        <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-slate-200 rounded-lg hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-base-100 focus:ring-slate-400 transition-colors shadow hover:shadow-md">Batal</button>
         <button type="button" onClick={handleSubmitAllScores} className="px-5 py-2.5 text-sm font-medium text-secondary-content bg-secondary hover:bg-secondary-focus rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-base-100 focus:ring-secondary transition-colors shadow hover:shadow-md">Simpan Semua Nilai</button>
       </div>
     </Modal>

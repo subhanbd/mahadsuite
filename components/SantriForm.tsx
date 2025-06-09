@@ -24,10 +24,11 @@ import {
   daftarPilihanYaTidak,
   daftarIdentitasWali,
   KelasRecord, 
-  BlokRecord
+  BlokRecord,
+  SupabaseDefaultFields
 } from '../types';
 
-type SantriPayload = Omit<Santri, 'id' | 'created_at' | 'updated_at'>;
+type SantriPayload = Omit<Santri, SupabaseDefaultFields>;
 
 
 interface SantriFormProps {
@@ -499,7 +500,7 @@ const SantriForm: React.FC<SantriFormProps> = ({ onSubmit, initialData, onClose,
         finalFormData = { ...finalFormData, alamatlengkapwali: finalFormData.alamatlengkap, provinsiwali: finalFormData.provinsi, kotakabupatenwali: finalFormData.kotakabupaten, kecamatanwali: finalFormData.kecamatan, desakelurahanwali: finalFormData.desakelurahan, dusunwali: finalFormData.dusun, rtwali: finalFormData.rt, rwwali: finalFormData.rw };
     }
     if (finalFormData.isalamatwakilwalisama === PilihanYaTidak.YA) {
-        finalFormData = { ...finalFormData, alamatlengkapwakilwali: finalFormData.alamatlengkap, provinsinakilwali: finalFormData.provinsi, kotakabupatenwakilwali: finalFormData.kotakabupaten, kecamatanwakilwali: finalFormData.kecamatan, desakelurahanwakilwali: finalFormData.desakelurahan, dusunwakilwali: finalFormData.dusun, rtwakilwali: finalFormData.rt, rwwakilwali: finalFormData.rw };
+        finalFormData = { ...finalFormData, alamatlengkapwakilwali: finalFormData.alamatlengkap, provinsiwakilwali: finalFormData.provinsi, kotakabupatenwakilwali: finalFormData.kotakabupaten, kecamatanwakilwali: finalFormData.kecamatan, desakelurahanwakilwali: finalFormData.desakelurahan, dusunwakilwali: finalFormData.dusun, rtwakilwali: finalFormData.rt, rwwakilwali: finalFormData.rw };
     }
 
 

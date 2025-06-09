@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
 import { BlokRecord, Santri, SantriStatus, SupabaseDefaultFields } from '../types';
 
-type BlokPayload = Omit<BlokRecord, keyof SupabaseDefaultFields>;
+type BlokPayload = Omit<BlokRecord, SupabaseDefaultFields>;
 
 interface BlokFormModalProps {
   isOpen: boolean;

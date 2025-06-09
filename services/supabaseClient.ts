@@ -3,7 +3,8 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { 
   Santri, User, BillDefinition, SantriPaymentRecord, AttendanceRecord, 
   PesantrenProfileData, LeavePermitRecord, CoretKttRecord, KelasRecord, BlokRecord, 
-  IqsamExam, IqsamScoreRecord, TamrinExam, TamrinScoreRecord 
+  IqsamExam, IqsamScoreRecord, TamrinExam, TamrinScoreRecord,
+  IqsamRegistrationRecord, IqsamResult // Added missing types
 } from '../types'; // Ensure these types do not extend AppwriteDocument
 
 const SUPABASE_URL = "https://ukpmesdxhbixxvdudxuo.supabase.co";
@@ -26,8 +27,12 @@ type LeavePermitRecordRow = WithSupabaseTimestamps<LeavePermitRecord>;
 type CoretKttRecordRow = WithSupabaseTimestamps<CoretKttRecord>;
 type KelasRecordRow = WithSupabaseTimestamps<KelasRecord>;
 type BlokRecordRow = WithSupabaseTimestamps<BlokRecord>;
+
 type IqsamExamRow = WithSupabaseTimestamps<IqsamExam>;
+type IqsamRegistrationRecordRow = WithSupabaseTimestamps<IqsamRegistrationRecord>;
 type IqsamScoreRecordRow = WithSupabaseTimestamps<IqsamScoreRecord>;
+type IqsamResultRow = WithSupabaseTimestamps<IqsamResult>;
+
 type TamrinExamRow = WithSupabaseTimestamps<TamrinExam>;
 type TamrinScoreRecordRow = WithSupabaseTimestamps<TamrinScoreRecord>;
 
@@ -90,10 +95,20 @@ export interface Database {
         Insert: Partial<IqsamExamRow>;
         Update: Partial<Omit<IqsamExamRow, 'id' | 'created_at'>>;
       };
+      iqsam_registrations: { // Added
+        Row: IqsamRegistrationRecordRow;
+        Insert: Partial<IqsamRegistrationRecordRow>;
+        Update: Partial<Omit<IqsamRegistrationRecordRow, 'id' | 'created_at'>>;
+      };
       iqsam_score_records: {
         Row: IqsamScoreRecordRow;
         Insert: Partial<IqsamScoreRecordRow>;
         Update: Partial<Omit<IqsamScoreRecordRow, 'id' | 'created_at'>>;
+      };
+      iqsam_results: { // Added
+        Row: IqsamResultRow;
+        Insert: Partial<IqsamResultRow>;
+        Update: Partial<Omit<IqsamResultRow, 'id' | 'created_at'>>;
       };
       tamrin_exams: {
         Row: TamrinExamRow;

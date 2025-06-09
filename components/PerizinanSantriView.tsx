@@ -8,7 +8,7 @@ import PlusIcon from './icons/PlusIcon';
 import CheckCircleIcon from './icons/CheckCircleIcon';
 import ArrowPathIcon from './icons/ArrowPathIcon'; 
 
-type LeavePermitPayload = Omit<LeavePermitRecord, keyof SupabaseDefaultFields | 'recordedAt' | 'durationMinutes' | 'actualReturnDate' | 'actualReturnTime'>;
+type LeavePermitPayload = Omit<LeavePermitRecord, SupabaseDefaultFields | 'recordedAt' | 'durationMinutes' | 'actualReturnDate' | 'actualReturnTime'>;
 
 
 interface PerizinanSantriViewProps {

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { BillDefinition, SupabaseDefaultFields } from '../types';
 
-type BillDefinitionPayload = Omit<BillDefinition, keyof SupabaseDefaultFields>;
+type BillDefinitionPayload = Omit<BillDefinition, SupabaseDefaultFields>;
 
 interface BillDefinitionFormModalProps {
   isOpen: boolean;

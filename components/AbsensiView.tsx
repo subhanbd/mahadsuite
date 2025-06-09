@@ -5,7 +5,7 @@ import UserIcon from './icons/UserIcon';
 import CheckCircleIcon from './icons/CheckCircleIcon'; 
 import InformationCircleIcon from './icons/InformationCircleIcon';
 
-type AttendanceRecordPayload = Omit<AttendanceRecord, keyof SupabaseDefaultFields | 'recordedAt' >;
+type AttendanceRecordPayload = Omit<AttendanceRecord, SupabaseDefaultFields | 'recordedAt' >;
 
 
 interface AbsensiViewProps {
@@ -94,8 +94,7 @@ const AbsensiView: React.FC<AbsensiViewProps> = ({
             santriId, 
             date: selectedDate, 
             status, 
-            notes, 
-            // recordedAt: new Date().toISOString(), // This will be set by App.tsx or Supabase trigger
+            notes: notes || '', 
             recordedBy: currentUserRole.toString(), 
         });
       }

@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Modal from './Modal';
-import { TamrinExam, KelasRecord, User, AppwriteDocument } from '../types'; // Changed TamrinSession to TamrinExam
+import { TamrinExam, KelasRecord, User, SupabaseDefaultFields } from '../types';
 
-type TamrinExamPayload = Omit<TamrinExam, 'id' | keyof AppwriteDocument>;
+type TamrinExamPayload = Omit<TamrinExam, SupabaseDefaultFields>;
 
 interface TamrinSessionFormModalProps {
   isOpen: boolean;
@@ -22,13 +22,16 @@ const TamrinSessionFormModal: React.FC<TamrinSessionFormModalProps> = ({
   kelasRecords,
   asatidzList,
 }) => {
-  const getInitialState = (): TamrinExamPayload => ({ 
+  const sortedKelas = [...kelasRecords].sort((a,b) => (a.urutanTampilan ?? 99) - (b.urutanTampilan ?? 99) || a.namaKelas.localeCompare(b.namaKelas));
+  const sortedAsatidz = [...asatidzList].sort((a,b) => a.namaLengkap.localeCompare(b.namaLengkap));
+
+  const getInitialState = useCallback((): TamrinExamPayload => ({ 
     namaTamrin: initialData?.namaTamrin || '',
-    kelasId: initialData?.kelasId || (kelasRecords.length > 0 ? kelasRecords[0].id : ''),
-    asatidzId: initialData?.asatidzId || (asatidzList.length > 0 ? asatidzList[0].id : ''),
+    kelasId: initialData?.kelasId || (sortedKelas.length > 0 ? sortedKelas[0].id : ''),
+    asatidzId: initialData?.asatidzId || (sortedAsatidz.length > 0 ? sortedAsatidz[0].id : ''),
     tanggalPelaksanaan: initialData?.tanggalPelaksanaan || new Date().toISOString().split('T')[0],
     deskripsi: initialData?.deskripsi || '',
-  });
+  }), [initialData, sortedKelas, sortedAsatidz]);
 
   const [formData, setFormData] = useState<TamrinExamPayload>(getInitialState());
 
@@ -36,8 +39,7 @@ const TamrinSessionFormModal: React.FC<TamrinSessionFormModalProps> = ({
     if (isOpen) {
       setFormData(getInitialState());
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialData, kelasRecords, asatidzList]);
+  }, [isOpen, getInitialState]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -56,7 +58,6 @@ const TamrinSessionFormModal: React.FC<TamrinSessionFormModalProps> = ({
   const inputClass = "mt-1 block w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent sm:text-sm text-neutral-content placeholder-slate-400 transition-colors";
   const labelClass = "block text-sm font-medium text-neutral-content/90";
   
-  const sortedKelas = [...kelasRecords].sort((a,b) => (a.urutanTampilan ?? 99) - (b.urutanTampilan ?? 99) || a.namaKelas.localeCompare(b.namaKelas));
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Sesi Tamrin' : 'Tambah Sesi Tamrin Baru'}>
@@ -77,7 +78,7 @@ const TamrinSessionFormModal: React.FC<TamrinSessionFormModalProps> = ({
             <label htmlFor="asatidzId" className={labelClass}>Asatidz Pelaksana <span className="text-red-500">*</span></label>
             <select name="asatidzId" id="asatidzId" value={formData.asatidzId} onChange={handleChange} className={inputClass} required>
               <option value="">Pilih Asatidz</option>
-              {asatidzList.map(a => <option key={a.id} value={a.id}>{a.namaLengkap}</option>)}
+              {sortedAsatidz.map(a => <option key={a.id} value={a.id}>{a.namaLengkap}</option>)}
             </select>
           </div>
         </div>
@@ -87,7 +88,7 @@ const TamrinSessionFormModal: React.FC<TamrinSessionFormModalProps> = ({
         </div>
         <div>
           <label htmlFor="deskripsi" className={labelClass}>Deskripsi (Opsional)</label>
-          <textarea name="deskripsi" id="deskripsi" value={formData.deskripsi} onChange={handleChange} rows={3} className={inputClass} placeholder="Deskripsi singkat atau materi Tamrin..." />
+          <textarea name="deskripsi" id="deskripsi" value={formData.deskripsi || ''} onChange={handleChange} rows={3} className={inputClass} placeholder="Deskripsi singkat atau materi Tamrin..." />
         </div>
         <div className="flex justify-end gap-3 pt-5 border-t border-base-300 mt-6">
           <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-slate-200 rounded-lg hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-base-100 focus:ring-slate-400 transition-colors shadow hover:shadow-md">Batal</button>
