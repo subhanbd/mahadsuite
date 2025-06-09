@@ -1,21 +1,12 @@
 {
-  "name": "ma’had-suite",
+  "name": "mahad-suite-app",
+  "version": "1.0.0",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "description": "Ma'had Suite Application - Static frontend with Appwrite backend",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "start": "echo \"No start script. Serve index.html\"",
+    "build": "echo \"No build step needed. Files are served as-is.\""
   },
-  "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "appwrite": "^18.1.1"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "typescript": "~5.7.2",
-    "vite": "^6.2.0"
-  }
+  "dependencies": {},
+  "devDependencies": {}
 }
